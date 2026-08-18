@@ -22,25 +22,36 @@ if ($b_type -eq 'studio') {
     $fileName = "Vortex.$version.exe"
 }
 
-$targetDir = ".\$b_type\$version"
-
-if (-not (Test-Path $targetDir)) {
-    Write-Error "Error: '$targetDir' does not exist."
-    exit 1
-}
-
-$partFiles = Get-ChildItem -Path $targetDir -Filter "$fileName.part*" | Sort-Object Name
-
-if ($partFiles.Count -eq 0) {
-    Write-Error "Error: No chunks found in $targetDir"
-    exit 1
-}
-
+$baseUrl = "https://githubusercontent.com"
 $outputPath = ".\$fileName"
+
 if (Test-Path $outputPath) { Remove-Item $outputPath }
 
-foreach ($part in $partFiles) {
-    [System.IO.File]::WriteAllBytes($outputPath, ([System.IO.File]::ReadAllBytes($part.FullName)))
+$partNum = 1
+while ($true) {
+    $partName = "{0}.part{1:D4}" -f $fileName, $partNum
+    $url = "$baseUrl/$partName"
+    
+    try {
+        $response = Invoke-WebRequest -Uri $url -Method Head -ErrorAction Stop
+        
+        if ($partNum -eq 1) {
+            Write-Host "Downloading parts directly from GitHub..."
+        }
+        
+        Write-Host "  Stitching: $partName"
+        $bytes = Invoke-RestMethod -Uri $url
+        [System.IO.File]::AppendAllBytes($outputPath, $bytes)
+        $partNum++
+    } catch {
+        if ($partNum -eq 1) {
+            Write-Error "Error: No chunks found in $baseUrl"
+            exit 1
+        }
+        break
+    }
 }
 
-Write-Host "`nSuccess! Reconstructed at: .\$fileName" -ForegroundColor Green
+$finalPartsCount = $partNum - 1
+Write-Host "`nFound $finalPartsCount parts."
+Write-Host "Success! Reconstructed at: .\$fileName" -ForegroundColor Green
