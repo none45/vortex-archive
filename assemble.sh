@@ -20,24 +20,34 @@ else
     FILE_NAME="Vortex.${VERSION}.exe"
 fi
 
-TARGET_DIR="./${B_TYPE}/${VERSION}"
-
-if [ ! -d "$TARGET_DIR" ]; then
-    echo "Error: '$TARGET_DIR' does not exist."
-    exit 1
-fi
-
-IFS=$'\n' sorted_parts=($(find "$TARGET_DIR" -type f -name "${FILE_NAME}.part*" | sort))
-
-if [ ${#sorted_parts[@]} -eq 0 ]; then
-    echo "Error: No chunks found in $TARGET_DIR"
-    exit 1
-fi
-
+BASE_URL="https://githubusercontent.com{B_TYPE}/${VERSION}"
 > "./${FILE_NAME}"
 
-for part in "${sorted_parts[@]}"; do
-    cat "$part" >> "./${FILE_NAME}"
+PART_NUM=1
+while true; do
+    PART_NAME=$(printf "%s.part%04d" "$FILE_NAME" "$PART_NUM")
+    URL="${BASE_URL}/${PART_NAME}"
+    
+    HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$URL")
+    
+    if [ "$HTTP_STATUS" -ne 200 ]; then
+        if [ "$PART_NUM" -eq 1 ]; then
+            echo "Error: No chunks found in ${BASE_URL}"
+            rm -f "./${FILE_NAME}"
+            exit 1
+        fi
+        break
+    fi
+    
+    if [ "$PART_NUM" -eq 1 ]; then
+        echo "Downloading parts directly from GitHub..."
+    fi
+    
+    echo "  Stitching: ${PART_NAME}"
+    curl -sSL "$URL" >> "./${FILE_NAME}"
+    ((PART_NUM++))
 done
 
+TOTAL_PARTS=$((PART_NUM - 1))
+echo "Found ${TOTAL_PARTS} parts."
 echo -e "\nSuccess! Reconstructed at: ./${FILE_NAME}"
