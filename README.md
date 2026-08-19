@@ -9,12 +9,12 @@ Open **PowerShell** and run the command for the version you want:
 
 #### Client:
 ```powershell
-irc (irm https://raw.githubusercontent.com/none45/vortex-archive/main/assemble.ps1) -ArgumentList "client". "v0.2.12"
+irc (irm https://raw.githubusercontent.com/none45/vortex-archive/main/assemble.ps1) -ArgumentList "client". "v0.2.13"
 ```
 
 #### Studio:
 ```powershell
-irc (irm https://raw.githubusercontent.com/none45/vortex-archive/main/assemble.ps1) -ArgumentList "studio". "v0.2.12"
+irc (irm https://raw.githubusercontent.com/none45/vortex-archive/main/assemble.ps1) -ArgumentList "studio". "v0.1.1"
 ```
 
 ---
@@ -29,10 +29,10 @@ curl -sSL https://raw.githubusercontent.com/none45/vortex-archive/main/assemble.
 
 #### Studio:
 ```bash
-curl -sSL https://raw.githubusercontent.com/none45/vortex-archive/main/assemble.sh | bash -s -- studio v0.2.13
+curl -sSL https://raw.githubusercontent.com/none45/vortex-archive/main/assemble.sh | bash -s -- studio v0.1.1
 ```
 
-*(Note: Change `v0.2.13` at the very end of any command to fetch a different archived version).*
+*(Note: Change the version at the very end of any command to fetch a different archived version).*
 
 ## List of current versions:
 
