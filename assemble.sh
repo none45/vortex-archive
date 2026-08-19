@@ -21,33 +21,31 @@ else
 fi
 
 BASE_URL="https://githubusercontent.com{B_TYPE}/${VERSION}"
-> "./${FILE_NAME}"
+TEMP_OUT="./${FILE_NAME}.tmp"
+> "$TEMP_OUT"
 
 PART_NUM=1
 while true; do
     PART_NAME=$(printf "%s.part%04d" "$FILE_NAME" "$PART_NUM")
     URL="${BASE_URL}/${PART_NAME}"
     
-    HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$URL")
-    
-    if [ "$HTTP_STATUS" -ne 200 ]; then
+    if curl -sSL --fail "$URL" >> "$TEMP_OUT"; then
+        if [ "$PART_NUM" -eq 1 ]; then
+            echo "Downloading parts directly from GitHub..."
+        fi
+        echo "  Stitching: ${PART_NAME}"
+        ((PART_NUM++))
+    else
         if [ "$PART_NUM" -eq 1 ]; then
             echo "Error: No chunks found in ${BASE_URL}"
-            rm -f "./${FILE_NAME}"
+            rm -f "$TEMP_OUT"
             exit 1
         fi
         break
     fi
-    
-    if [ "$PART_NUM" -eq 1 ]; then
-        echo "Downloading parts directly from GitHub..."
-    fi
-    
-    echo "  Stitching: ${PART_NAME}"
-    curl -sSL "$URL" >> "./${FILE_NAME}"
-    ((PART_NUM++))
 done
 
+mv "$TEMP_OUT" "./${FILE_NAME}"
 TOTAL_PARTS=$((PART_NUM - 1))
 echo "Found ${TOTAL_PARTS} parts."
 echo -e "\nSuccess! Reconstructed at: ./${FILE_NAME}"
