@@ -37,6 +37,7 @@ curl -sSL https://raw.githubusercontent.com/none45/vortex-archive/main/assemble.
 ## List of current versions:
 
 ### Client
+- v0.1.5
 - v0.2.13
 - v0.2.15
 - v0.2.16
