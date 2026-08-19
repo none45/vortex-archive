@@ -14,12 +14,12 @@ Open **PowerShell** and run the command for the version you want:
 
 #### Client:
 ```powershell
-irc (irm https://raw.githubusercontent.com/none45/vortex-archive/main/assemble.ps1) -ArgumentList "client". "v0.1.93" "noupdate"
+& ([scriptblock]::Create((irm https://raw.githubusercontent.com/none45/vortex-archive/main/assemble.ps1))) client v0.1.93 noupdate
 ```
 
 #### Studio:
 ```powershell
-irc (irm https://raw.githubusercontent.com/none45/vortex-archive/main/assemble.ps1) -ArgumentList "studio". "v0.1.1" "noupdate"
+& ([scriptblock]::Create((irm https://raw.githubusercontent.com/none45/vortex-archive/main/assemble.ps1))) studio v0.1.1 noupdate
 ```
 
 ---
