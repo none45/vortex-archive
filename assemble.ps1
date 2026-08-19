@@ -33,14 +33,14 @@ while ($true) {
     $url = "$baseUrl/$partName"
     
     try {
-        $response = Invoke-WebRequest -Uri $url -Method Head -ErrorAction Stop
+        $wc = New-Object System.Net.WebClient
+        $bytes = $wc.DownloadData($url)
         
         if ($partNum -eq 1) {
             Write-Host "Downloading parts directly from GitHub..."
         }
         
         Write-Host "  Stitching: $partName"
-        $bytes = Invoke-RestMethod -Uri $url
         [System.IO.File]::AppendAllBytes($outputPath, $bytes)
         $partNum++
     } catch {
