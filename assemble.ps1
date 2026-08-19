@@ -31,7 +31,6 @@ $partNum = 1
 while ($true) {
     $partName = "{0}.part{1:D4}" -f $fileName, $partNum
     $url = "$baseUrl/$partName"
-<<<<<<< HEAD
 
     try {
         $wc = New-Object System.Net.WebClient
@@ -41,17 +40,6 @@ while ($true) {
             Write-Host "Downloading parts directly from GitHub..."
         }
 
-=======
-    
-    try {
-        $wc = New-Object System.Net.WebClient
-        $bytes = $wc.DownloadData($url)
-        
-        if ($partNum -eq 1) {
-            Write-Host "Downloading parts directly from GitHub..."
-        }
-        
->>>>>>> 88d2d6b055e8b3af92a81bf3ac75bfe859309371
         Write-Host "  Stitching: $partName"
         [System.IO.File]::AppendAllBytes($outputPath, $bytes)
         $partNum++
