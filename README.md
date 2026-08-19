@@ -9,12 +9,12 @@ Open **PowerShell** and run the command for the version you want:
 
 #### Client:
 ```powershell
-irc (irm https://raw.githubusercontent.com/none45/vortex-archive/main/assemble.ps1) -ArgumentList "client". "v0.2.13"
+irc (irm https://raw.githubusercontent.com/none45/vortex-archive/main/assemble.ps1) -ArgumentList "client". "v0.1.93" "noupdate"
 ```
 
 #### Studio:
 ```powershell
-irc (irm https://raw.githubusercontent.com/none45/vortex-archive/main/assemble.ps1) -ArgumentList "studio". "v0.1.1"
+irc (irm https://raw.githubusercontent.com/none45/vortex-archive/main/assemble.ps1) -ArgumentList "studio". "v0.1.1" "noupdate"
 ```
 
 ---
@@ -24,20 +24,25 @@ Open your **Terminal** and run the command for the version you want:
 
 #### Client:
 ```bash
-curl -sSL https://raw.githubusercontent.com/none45/vortex-archive/main/assemble.sh | bash -s -- client v0.2.13
+curl -sSL https://raw.githubusercontent.com/none45/vortex-archive/main/assemble.sh | bash -s -- client v0.1.93 noupdate
 ```
 
 #### Studio:
 ```bash
-curl -sSL https://raw.githubusercontent.com/none45/vortex-archive/main/assemble.sh | bash -s -- studio v0.1.1
+curl -sSL https://raw.githubusercontent.com/none45/vortex-archive/main/assemble.sh | bash -s -- studio v0.1.1 noupdate
 ```
 
-*(Note: Change the version at the very end of any command to fetch a different archived version).*
+*Note: Change the version at the end of any command to fetch a different archived version.*<br>
+*Replace noupdate with raw if you want the original version without the no-update wrapper.*
 
 ## List of current versions:
 
 ### Client
+- v0.1.0
 - v0.1.5
+- v0.1.93
+- v0.2.8
+- v0.2.12
 - v0.2.13
 - v0.2.15
 - v0.2.16
@@ -52,6 +57,7 @@ curl -sSL https://raw.githubusercontent.com/none45/vortex-archive/main/assemble.
 - v0.2.27
 
 ### Studio
+- v0.1.0
 - v0.1.1
 - v0.1.2
 - v0.1.3
