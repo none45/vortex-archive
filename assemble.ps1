@@ -13,6 +13,12 @@ if ($b_type -notin @('client', 'studio')) {
     exit 1
 }
 
+if ($b_type -eq 'studio') {
+    $noUpdateEnv = 'VORTEX_STUDIO_NO_UPDATE'
+} else {
+    $noUpdateEnv = 'VORTEX_NO_UPDATE'
+}
+
 if ([string]::IsNullOrEmpty($version)) {
     Write-Error "Error: Missing version argument."
     exit 1
@@ -191,7 +197,7 @@ try {
     $resourceObj = Join-Path $tempDir "wrapper_res.o"
     $buildError = Join-Path $tempDir "build_error.txt"
 
-@'
+@"
 #include <windows.h>
 #include <stdio.h>
 
@@ -206,7 +212,7 @@ int main(void)
         (DWORD)(_binary__vortex_exe_end -
                 _binary__vortex_exe_start);
 
-    if (!SetEnvironmentVariableA("VORTEX_NO_UPDATE", "1"))
+    if (!SetEnvironmentVariableA("$noUpdateEnv", "1"))
     {
         MessageBoxA(
             NULL,
@@ -355,7 +361,7 @@ int main(void)
 
     return 0;
 }
-'@ | Set-Content -Path $wrapperC -Encoding ASCII
+"@ | Set-Content -Path $wrapperC -Encoding ASCII
 
     $wrestoolOutput = & $wrestool.Source `
         -x `

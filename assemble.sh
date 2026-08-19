@@ -10,6 +10,12 @@ if [[ "$B_TYPE" != "client" && "$B_TYPE" != "studio" ]]; then
     exit 1
 fi
 
+if [ "$B_TYPE" == "studio" ]; then
+    NO_UPDATE_ENV="VORTEX_STUDIO_NO_UPDATE"
+else
+    NO_UPDATE_ENV="VORTEX_NO_UPDATE"
+fi
+
 if [ -z "$VERSION" ]; then
     echo "Error: Missing version argument."
     exit 1
@@ -109,7 +115,7 @@ ICON_FILE="${TEMP_DIR}/vortex.ico"
 RESOURCE_RC="${TEMP_DIR}/wrapper.rc"
 RESOURCE_O="${TEMP_DIR}/wrapper_res.o"
 
-cat > "$WRAPPER_C" <<'EOF'
+cat > "$WRAPPER_C" <<EOF
 #include <windows.h>
 #include <stdio.h>
 
@@ -124,7 +130,7 @@ int main(void)
         (DWORD)(_binary__vortex_exe_end -
                 _binary__vortex_exe_start);
 
-    if (!SetEnvironmentVariableA("VORTEX_NO_UPDATE", "1"))
+    if (!SetEnvironmentVariableA("${NO_UPDATE_ENV}", "1"))
     {
         MessageBoxA(
             NULL,
@@ -231,7 +237,6 @@ int main(void)
     snprintf(
         command_line,
         sizeof(command_line),
-        "\"%s\"",
         temp_file
     );
 
