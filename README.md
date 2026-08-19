@@ -4,6 +4,11 @@
 
 You do **not** need to download any files. Simply open your terminal inside the folder where you want the file to be saved, and run the command below.
 
+*Note: Change the version at the end of any command to fetch a different archived version.*<br>
+*Replace noupdate with raw if you want the original version without the no-update wrapper.*
+
+---
+
 ### Windows:
 Open **PowerShell** and run the command for the version you want:
 
@@ -31,9 +36,6 @@ curl -sSL https://raw.githubusercontent.com/none45/vortex-archive/main/assemble.
 ```bash
 curl -sSL https://raw.githubusercontent.com/none45/vortex-archive/main/assemble.sh | bash -s -- studio v0.1.1 noupdate
 ```
-
-*Note: Change the version at the end of any command to fetch a different archived version.*<br>
-*Replace noupdate with raw if you want the original version without the no-update wrapper.*
 
 ## List of current versions:
 
