@@ -28,7 +28,11 @@ PART_NUM=1
 while true; do
     PART_NAME=$(printf "%s.part%04d" "$FILE_NAME" "$PART_NUM")
     URL="${BASE_URL}/${PART_NAME}"
+<<<<<<< HEAD
 
+=======
+    
+>>>>>>> 88d2d6b055e8b3af92a81bf3ac75bfe859309371
     if curl -sSL --fail "$URL" >> "$TEMP_OUT"; then
         if [ "$PART_NUM" -eq 1 ]; then
             echo "Downloading parts directly from GitHub..."
