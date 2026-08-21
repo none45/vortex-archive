@@ -51,12 +51,14 @@ curl -sSL https://raw.githubusercontent.com/none45/vortex-archive/main/assemble.
 - v0.2.18
 - v0.2.19
 - v0.2.20
+- v0.2.21
 - v0.2.22
 - v0.2.23
 - v0.2.24
 - v0.2.25
 - v0.2.26
 - v0.2.27
+- v0.3.0
 
 ### Studio
 - v0.1.0
