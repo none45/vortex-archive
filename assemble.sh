@@ -34,9 +34,9 @@ fi
 
 REPO_OWNER="none45"
 REPO_NAME="vortex-archive"
-BRANCH="main"
 
-BASE_URL="https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/${BRANCH}/${B_TYPE}/${VERSION}"
+TAG="${B_TYPE}_${VERSION}"
+DOWNLOAD_URL="https://github.com/${REPO_OWNER}/${REPO_NAME}/releases/download/${TAG}/${FILE_NAME}"
 
 if ! command -v curl >/dev/null 2>&1; then
     echo "curl is missing. Installing..."
@@ -69,33 +69,15 @@ trap cleanup EXIT
 TEMP_OUT="${TEMP_DIR}/_vortex.exe"
 > "$TEMP_OUT"
 
-PART_NUM=1
+echo "Downloading ${FILE_NAME}..."
 
-while true; do
-    PART_NAME=$(printf "%s.part%04d" "$FILE_NAME" "$PART_NUM")
-    URL="${BASE_URL}/${PART_NAME}"
-
-    if curl -sSL --fail "$URL" 2>/dev/null >> "$TEMP_OUT"; then
-        if [ "$PART_NUM" -eq 1 ]; then
-            echo "Downloading parts..."
-        fi
-
-        echo "  Stitching: ${PART_NAME}"
-        PART_NUM=$((PART_NUM + 1))
-    else
-        if [ "$PART_NUM" -eq 1 ]; then
-            echo "Error: No chunks found in ${BASE_URL}"
-            exit 1
-        fi
-
-        break
-    fi
-done
-
-TOTAL_PARTS=$((PART_NUM - 1))
+if ! curl -sSL --fail -o "$TEMP_OUT" "$DOWNLOAD_URL"; then
+    echo "Error: Could not download ${DOWNLOAD_URL}"
+    exit 1
+fi
 
 echo
-echo "Found ${TOTAL_PARTS} parts."
+echo "Downloaded."
 
 if [ "$MODE" == "raw" ]; then
     cp "$TEMP_OUT" "./${FILE_NAME}"

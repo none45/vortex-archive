@@ -37,9 +37,9 @@ if ($b_type -eq 'studio') {
 
 $repoOwner = "none45"
 $repoName  = "vortex-archive"
-$branch    = "main"
 
-$baseUrl = "https://raw.githubusercontent.com/$repoOwner/$repoName/$branch/$b_type/$version"
+$tag = "$b_type" + "_" + "$version"
+$downloadUrl = "https://github.com/$repoOwner/$repoName/releases/download/$tag/$fileName"
 
 $tempDir = Join-Path $env:TEMP ("vortex-wrapper-" + [Guid]::NewGuid().ToString())
 
@@ -130,46 +130,18 @@ try {
         }
     }
 
-    $partNum = 1
+    Write-Host "Downloading $fileName..."
 
-    while ($true) {
-
-        $partName = "{0}.part{1:D4}" -f $fileName, $partNum
-        $url = "$baseUrl/$partName"
-
-        try {
-
-            $wc = New-Object System.Net.WebClient
-            $bytes = $wc.DownloadData($url)
-
-            if ($partNum -eq 1) {
-                Write-Host "Downloading parts..."
-            }
-
-            Write-Host "  Stitching: $partName"
-
-            [System.IO.File]::AppendAllBytes(
-                $tempVortex,
-                $bytes
-            )
-
-            $partNum++
-
-        } catch {
-
-            if ($partNum -eq 1) {
-                Write-Error "Error: No chunks found in $baseUrl"
-                exit 1
-            }
-
-            break
-        }
+    try {
+        $wc = New-Object System.Net.WebClient
+        $wc.DownloadFile($downloadUrl, $tempVortex)
+    } catch {
+        Write-Error "Error: Could not download $downloadUrl"
+        exit 1
     }
 
-    $finalPartsCount = $partNum - 1
-
     Write-Host ""
-    Write-Host "Found $finalPartsCount parts."
+    Write-Host "Downloaded."
 
     if ($mode -eq "raw") {
 
