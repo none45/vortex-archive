@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Vortex Version Checker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&family=Sora:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d1117;
+    --panel: #151b23;
+    --topbar: #10151c;
+    --border: #2d3542;
+    --border-soft: #212833;
+    --text: #dde3ea;
+    --muted: #7d8796;
+    --accent: #a48fe0;
+    --accent-dim: rgba(164, 143, 224, 0.1);
+    --studio: #6f8fd4;
+    --studio-dim: rgba(111, 143, 212, 0.1);
+    --good: #7fb88f;
+    --bad: #d9705f;
+    --bad-dim: rgba(217, 112, 95, 0.1);
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    min-height: 100%;
+  }
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+  }
+  .body-row {
+    display: flex;
+    flex: 1;
+  }
+
+  .sidebar {
+    position: relative;
+    width: 260px;
+    flex-shrink: 0;
+    background: var(--topbar);
+    border-right: 1px solid var(--border-soft);
+    padding: 24px 16px;
+    min-width: 160px;
+    max-width: 480px;
+  }
+  .sidebar-resize {
+    position: absolute;
+    top: 0;
+    right: -3px;
+    width: 6px;
+    height: 100%;
+    cursor: col-resize;
+    z-index: 10;
+  }
+  .sidebar-resize:hover,
+  .sidebar-resize.dragging {
+    background: var(--accent-dim);
+  }
+  .sidebar h4 {
+    font-family: 'Sora', 'Inter', sans-serif;
+    font-size: 0.72rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+    margin: 0 0 10px 8px;
+  }
+  .sidebar ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .sidebar li a {
+    display: block;
+    position: relative;
+    padding: 7px 8px 7px 14px;
+    border-radius: 6px;
+    font-family: 'Sora', 'Inter', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 400;
+    color: var(--text);
+    text-decoration: none;
+    background: var(--accent-dim);
+    overflow: hidden;
+  }
+  .sidebar li a::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 5px;
+    background: var(--accent);
+  }
+
+  @media (max-width: 640px) {
+    .sidebar { display: none; }
+  }
+
+  .topbar {
+    background: var(--topbar);
+    border-bottom: 1px solid var(--border-soft);
+    padding: 0 24px;
+  }
+  .topbar-inner {
+    width: 100%;
+    height: 52px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .topbar-brand {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .topbar-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--accent);
+    flex-shrink: 0;
+  }
+  .topbar-link {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--muted);
+    text-decoration: none;
+    font-size: 0.85rem;
+    font-family: 'JetBrains Mono', monospace;
+    padding: 6px 10px;
+    border-radius: 6px;
+    border: 1px solid var(--border-soft);
+    transition: border-color 0.15s, color 0.15s;
+  }
+  .topbar-link:hover {
+    border-color: var(--border);
+    color: var(--text);
+  }
+  .topbar-link svg { flex-shrink: 0; }
+
+  main {
+    display: flex;
+    justify-content: center;
+    flex: 1;
+    padding: 56px 24px 40px;
+  }
+  .card {
+    width: 100%;
+    max-width: 700px;
+  }
+  h1 {
+    font-size: 1.4rem;
+    font-weight: 600;
+    margin: 0 0 8px;
+    letter-spacing: -0.01em;
+  }
+  p.sub {
+    color: var(--muted);
+    font-size: 0.9rem;
+    line-height: 1.55;
+    margin: 0 0 20px;
+    max-width: 46ch;
+  }
+
+  .drop {
+    position: relative;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 40px 20px;
+    text-align: center;
+    cursor: pointer;
+    background: var(--panel);
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .drop::before {
+    content: "";
+    position: absolute;
+    inset: 8px;
+    border: 1px dashed var(--border-soft);
+    border-radius: 5px;
+    pointer-events: none;
+    transition: border-color 0.15s;
+  }
+  .drop:hover, .drop.dragover {
+    border-color: var(--accent);
+    background: var(--accent-dim);
+  }
+  .drop:hover::before, .drop.dragover::before {
+    border-color: rgba(95, 184, 143, 0.4);
+  }
+  .drop input { display: none; }
+  .drop-label {
+    font-size: 0.95rem;
+    font-weight: 500;
+    position: relative;
+  }
+  .drop-hint {
+    color: var(--muted);
+    font-size: 0.82rem;
+    margin-top: 7px;
+    position: relative;
+  }
+
+  .filename {
+    margin-top: 20px;
+    font-size: 0.82rem;
+    color: var(--muted);
+    font-family: 'JetBrains Mono', monospace;
+    word-break: break-all;
+  }
+  .progress {
+    margin-top: 14px;
+    font-size: 0.82rem;
+    color: var(--muted);
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  #result { margin-top: 20px; }
+
+  .result-box {
+    position: relative;
+    border-radius: 6px;
+    background: var(--panel);
+    border: 1px solid var(--border-soft);
+    padding: 12px 20px 12px 25px;
+    overflow: hidden;
+  }
+  .result-box::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 5px;
+    background: var(--border);
+  }
+  .result-box.ok::before { background: var(--accent); }
+  .result-box.studio::before { background: var(--studio); }
+  .result-box.no::before { background: var(--bad); }
+
+  .result-box .headline {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 600;
+    font-size: 1.05rem;
+  }
+  .result-box.ok .headline { color: var(--accent); }
+  .result-box.studio .headline { color: var(--studio); }
+  .result-box.no .headline { color: var(--bad); }
+
+  .details {
+    margin-top: 12px;
+    font-size: 0.82rem;
+    color: var(--muted);
+    line-height: 1.7;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .details .row {
+    display: flex;
+    gap: 8px;
+  }
+  .details .row .k {
+    color: var(--muted);
+    min-width: 150px;
+    flex-shrink: 0;
+  }
+  .details .row .v {
+    color: var(--text);
+  }
+  .details .row .v.bool-true { color: var(--good); }
+  .details .row .v.bool-false { color: var(--bad); }
+
+  footer {
+    margin-top: 20px;
+    font-size: 0.78rem;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+
+  @media (max-width: 480px) {
+    .topbar-link span.label { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="topbar-brand">
+      <span class="topbar-dot"></span>
+      none's vortex tools
+    </div>
+    <a class="topbar-link" href="https://github.com/none45/vortex-archive" target="_blank" rel="noopener">
+      <svg height="14" width="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+        <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
+      </svg>
+      <span class="label">none45/vortex-archive</span>
+    </a>
+  </div>
+</div>
+
+<div class="body-row">
+<div class="sidebar" id="sidebar">
+  <h4>Tools</h4>
+  <ul>
+    <li><a href="#">Vortex Version Checker</a></li>
+  </ul>
+  <div class="sidebar-resize" id="sidebarResize"></div>
+</div>
+
+<main>
+  <div class="card">
+    <h1>Vortex Version Checker</h1>
+    <p class="sub">Pick a Vortex binary and it's scanned in your browser, never leaving your machine.</p>
+
+    <div class="drop" id="drop">
+      <input type="file" id="fileInput">
+      <div class="drop-label">Click to choose a file, or drag one here</div>
+      <div class="drop-hint">Scans the binary for update-guard markers and a version string</div>
+    </div>
+
+    <div class="filename" id="filename"></div>
+    <div class="progress" id="progress"></div>
+    <div id="result"></div>
+
+    <footer>No network requests are made during the scan, all parsing happens client-side via FileReader.</footer>
+  </div>
+</main>
+</div>
+
+<script>
+(function () {
+  const sidebar = document.getElementById('sidebar');
+  const handle = document.getElementById('sidebarResize');
+  let dragging = false;
+
+  handle.addEventListener('mousedown', (e) => {
+    dragging = true;
+    handle.classList.add('dragging');
+    document.body.style.userSelect = 'none';
+    document.body.style.cursor = 'col-resize';
+    e.preventDefault();
+  });
+
+  window.addEventListener('mousemove', (e) => {
+    if (!dragging) return;
+    const min = parseInt(getComputedStyle(sidebar).minWidth, 10);
+    const max = parseInt(getComputedStyle(sidebar).maxWidth, 10);
+    let newWidth = e.clientX;
+    newWidth = Math.max(min, Math.min(max, newWidth));
+    sidebar.style.width = newWidth + 'px';
+  });
+
+  window.addEventListener('mouseup', () => {
+    if (!dragging) return;
+    dragging = false;
+    handle.classList.remove('dragging');
+    document.body.style.userSelect = '';
+    document.body.style.cursor = '';
+  });
+})();
+</script>
+
+<script>
+(function () {
+  const fileInput = document.getElementById('fileInput');
+  const drop = document.getElementById('drop');
+  const filenameEl = document.getElementById('filename');
+  const progressEl = document.getElementById('progress');
+  const resultEl = document.getElementById('result');
+
+  const MARKER_NO_UPDATE = 'VORTEX_NO_UPDATE';
+  const MARKER_STUDIO_NO_UPDATE = 'VORTEX_STUDIO_NO_UPDATE';
+  const VERSION_REGEX = /v0\.[0-9]\.[0-9]{1,2}/g;
+
+  drop.addEventListener('click', () => fileInput.click());
+  drop.addEventListener('dragover', (e) => { e.preventDefault(); drop.classList.add('dragover'); });
+  drop.addEventListener('dragleave', () => drop.classList.remove('dragover'));
+  drop.addEventListener('drop', (e) => {
+    e.preventDefault();
+    drop.classList.remove('dragover');
+    if (e.dataTransfer.files.length) {
+      fileInput.files = e.dataTransfer.files;
+      handleFile(e.dataTransfer.files[0]);
+    }
+  });
+  fileInput.addEventListener('change', () => {
+    if (fileInput.files.length) handleFile(fileInput.files[0]);
+  });
+
+  function handleFile(file) {
+    filenameEl.textContent = file.name + '  (' + formatBytes(file.size) + ')';
+    resultEl.innerHTML = '';
+    progressEl.textContent = 'Reading file…';
+
+    const reader = new FileReader();
+    reader.onerror = () => {
+      progressEl.textContent = '';
+      showResult(false, 'Not a valid Vortex binary');
+    };
+    reader.onload = (e) => {
+      progressEl.textContent = 'Scanning…';
+      setTimeout(() => {
+        try {
+          const bytes = new Uint8Array(e.target.result);
+          analyze(bytes);
+        } catch (err) {
+          showResult(false, 'Error while scanning: ' + err.message);
+        }
+        progressEl.textContent = '';
+      }, 10);
+    };
+    reader.readAsArrayBuffer(file);
+  }
+
+  function extractStrings(bytes, minLen) {
+    minLen = minLen || 4;
+    const results = [];
+    let start = -1;
+    for (let i = 0; i < bytes.length; i++) {
+      const b = bytes[i];
+      const printable = b >= 32 && b <= 126;
+      if (printable) {
+        if (start === -1) start = i;
+      } else {
+        if (start !== -1) {
+          const len = i - start;
+          if (len >= minLen) results.push(bytesToAscii(bytes, start, i));
+          start = -1;
+        }
+      }
+    }
+    if (start !== -1 && bytes.length - start >= minLen) {
+      results.push(bytesToAscii(bytes, start, bytes.length));
+    }
+    return results;
+  }
+
+  function bytesToAscii(bytes, start, end) {
+    let s = '';
+    for (let i = start; i < end; i++) s += String.fromCharCode(bytes[i]);
+    return s;
+  }
+
+  function analyze(bytes) {
+    const strings = extractStrings(bytes, 4);
+    const joined = strings.join('\n');
+
+    const hasNoUpdate = joined.indexOf(MARKER_NO_UPDATE) !== -1;
+    const hasStudioNoUpdate = joined.indexOf(MARKER_STUDIO_NO_UPDATE) !== -1;
+
+    if (!hasNoUpdate && !hasStudioNoUpdate) {
+      showResult(false, 'Not a valid Vortex binary');
+      return;
+    }
+
+    const type = hasStudioNoUpdate ? 'studio' : 'client';
+
+    let versionMatch = null;
+    for (const s of strings) {
+      const m = s.match(VERSION_REGEX);
+      if (m && m.length) { versionMatch = m[0]; break; }
+    }
+
+    const hasNoUpdateWrapper = joined.indexOf('_vortex.exe') !== -1;
+
+    showResult(true, null, type, versionMatch, hasNoUpdateWrapper);
+  }
+
+  function showResult(found, message, type, version, hasNoUpdateWrapper) {
+    if (!found) {
+      resultEl.innerHTML =
+        '<div class="result-box no">' +
+        '<div class="headline">' + escapeHtml(message) + '</div>' +
+        '</div>';
+      return;
+    }
+
+    const label = type === 'studio' ? 'Vortex Studio' : 'Vortex';
+    const headline = version ? (label + ' — ' + version) : (label + ' — version not found');
+    const boxClass = type === 'studio' ? 'result-box studio' : 'result-box ok';
+
+    resultEl.innerHTML =
+      '<div class="' + boxClass + '">' +
+      '<div class="headline">' + escapeHtml(headline) + '</div>' +
+      '<div class="details">' +
+      '<div class="row"><span class="k">update guard</span><span class="v">' + (type === 'studio' ? 'VORTEX_STUDIO_NO_UPDATE' : 'VORTEX_NO_UPDATE') + '</span></div>' +
+      '<div class="row"><span class="k">type</span><span class="v">' + type + '</span></div>' +
+      (version ? '<div class="row"><span class="k">version string</span><span class="v">' + escapeHtml(version) + '</span></div>' : '') +
+      '<div class="row"><span class="k">noupdate wrapper</span><span class="v ' + (hasNoUpdateWrapper ? 'bool-true">TRUE' : 'bool-false">FALSE') + '</span></div>' +
+      '</div>' +
+      '</div>';
+  }
+
+  function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  function formatBytes(bytes) {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+  }
+})();
+</script>
+</body>
+</html>
