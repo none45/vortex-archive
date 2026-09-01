@@ -763,7 +763,7 @@
 
       <span class="website-text">
         <span class="website-name">none's vortex tools</span>
-        <span class="site-version" id="siteVersion">v0.2.…</span>
+        <span class="site-version" id="siteVersion">v0.2.?</span>
       </span>
     </a>
 
@@ -1740,25 +1740,28 @@
 
     const data = await response.json();
 
-    const deployment = data.workflow_runs.find(
-      run => run.name === 'pages-build-deployment'
-    );
+    const deployments = data.workflow_runs
+      .filter(run =>
+        run.path &&
+        run.path.includes('pages')
+      )
+      .sort(
+        (a, b) =>
+          new Date(b.created_at) - new Date(a.created_at)
+      );
 
-    if (!deployment) {
-      throw new Error('Pages deployment workflow not found');
+    if (!deployments.length) {
+      throw new Error('No Pages workflow runs found');
     }
 
-    const v = {
-      1: '0',
-      2: '2',
-      3: deployment.run_number
-    };
+    const latest = deployments[0];
 
     versionEl.textContent =
-      'v' + v[1] + '.' + v[2] + '.' + v[3];
+      'v0.2.' + latest.run_number;
 
   } catch (err) {
     console.error('Failed to load site version:', err);
+    versionEl.textContent = 'v0.2.?';
   }
 })();
 </script>
