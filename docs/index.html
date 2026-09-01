@@ -941,7 +941,9 @@
 
   async function loadConfig() {
     try {
-      const res = await fetch(BASE + '/config.json');
+      const res = await fetch(
+        BASE + '/config.json?v=' + Date.now()
+      );
       if (!res.ok) throw new Error('HTTP ' + res.status);
       config = await res.json();
     } catch (err) {
