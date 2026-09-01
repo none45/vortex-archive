@@ -983,7 +983,7 @@
   const versionInput = document.getElementById('version');
   const versionModal = document.getElementById('versionModal');
 
-  const availableVersions = {
+  window.availableVersions = {
     client: [],
     studio: []
   };
@@ -1085,20 +1085,20 @@
         }
       }
 
-      availableVersions.client =
+      window.availableVersions.client =
         [...client].sort(compareVersions);
 
-      availableVersions.studio =
+      window.availableVersions.studio =
         [...studio].sort(compareVersions);
 
       renderList(
         clientList,
-        availableVersions.client
+        window.availableVersions.client
       );
 
       renderList(
         studioList,
-        availableVersions.studio
+        window.availableVersions.studio
       );
 
     } catch (err) {
