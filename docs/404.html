@@ -1474,7 +1474,6 @@
   const MARKER_NO_UPDATE = 'VORTEX_NO_UPDATE';
   const MARKER_STUDIO_NO_UPDATE = 'VORTEX_STUDIO_NO_UPDATE';
 
-  // v0.1.X, v0.1.XX, v0.2.X ... v0.5.XX
   const VERSION_REGEX = /v0\.[0-9]\.[0-9]{1,2}/g;
 
   drop.addEventListener('click', () => fileInput.click());
@@ -1600,8 +1599,8 @@
     const hasStudioNoUpdate =
       joined.indexOf(MARKER_STUDIO_NO_UPDATE) !== -1;
 
-    if (!hasNoUpdate) {
-      showResult(false, 'Not a Vortex binary.');
+    if (!hasNoUpdate && !hasStudioNoUpdate) {
+      showResult(false, 'Not a valid Vortex binary');
       return;
     }
 
