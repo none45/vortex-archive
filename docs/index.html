@@ -780,6 +780,7 @@
 <div class="sidebar" id="sidebar">
   <ul style="margin-bottom: 10px;">
     <li><a href="/vortex-archive/" data-route="/" class="readme-link" id="readmeNavLink">README.md</a></li>
+    <li><a href="/vortex-archive/contributing/" data-route="/contributing/" class="readme-link" id="contributingNavLink">CONTRIBUTING.md</a></li>
   </ul>
   <hr style="border: none; border-top: 1px solid var(--border-soft); margin: 10px 8px 16px;">
   <h4>Tools</h4>
@@ -795,6 +796,11 @@
 
     <div class="view" id="view-readme">
       <div id="readmeContent" class="markdown-body">
+        <div class="markdown-status">Loading…</div>
+      </div>
+    </div>
+    <div class="view" id="view-contributing">
+      <div id="contributingContent" class="markdown-body">
         <div class="markdown-status">Loading…</div>
       </div>
     </div>
@@ -917,17 +923,20 @@
 
   const views = {
     '/': document.getElementById('view-readme'),
+    '/contributing/': document.getElementById('view-contributing'),
     '/archive-downloader/': document.getElementById('view-downloader'),
     '/version-checker/': document.getElementById('view-checker')
   };
   const navLinks = document.querySelectorAll('[data-route]');
   const readmeNavLink = document.getElementById('readmeNavLink');
+  const contributingNavLink = document.getElementById('contributingNavLink');
   const navDownloader = document.getElementById('navDownloader');
   const navChecker = document.getElementById('navChecker');
   const mainCard = document.getElementById('mainCard');
   const mainEl = document.getElementById('mainEl');
 
   let readmeLoaded = false;
+  let contributingLoaded = false;
   let config = { wideMode: {} };
 
   async function loadConfig() {
@@ -937,6 +946,42 @@
       config = await res.json();
     } catch (err) {
       config = { wideMode: {} };
+    }
+  }
+
+  async function loadContributing() {
+    if (contributingLoaded) return;
+
+    const contributingContent =
+      document.getElementById('contributingContent');
+
+    try {
+      const res = await fetch(
+        'https://raw.githubusercontent.com/' +
+        REPO_OWNER +
+        '/' +
+        REPO_NAME +
+        '/main/CONTRIBUTING.md'
+      );
+
+      if (!res.ok) {
+        throw new Error('HTTP ' + res.status);
+      }
+
+      const text = await res.text();
+
+      contributingContent.innerHTML =
+        marked.parse(text);
+
+      contributingLoaded = true;
+
+    } catch (err) {
+      contributingContent.innerHTML =
+        '<div class="markdown-status">' +
+          'Could not load CONTRIBUTING.md (' +
+          err.message +
+          ')' +
+        '</div>';
     }
   }
 
@@ -974,24 +1019,34 @@
     navLinks.forEach((link) => link.classList.remove('active-nav'));
 
     readmeNavLink.classList.remove('active');
+    contributingNavLink.classList.remove('active');
+
     navDownloader.classList.remove('inactive');
     navChecker.classList.remove('inactive');
+
     navDownloader.classList.add('inactive');
     navChecker.classList.add('inactive');
 
     if (route === '/') {
       readmeNavLink.classList.add('active');
       loadReadme();
+
+    } else if (route === '/contributing/') {
+      contributingNavLink.classList.add('active');
+      loadContributing();
+
     } else if (route === '/archive-downloader/') {
       navDownloader.classList.remove('inactive');
+
     } else if (route === '/version-checker/') {
       navChecker.classList.remove('inactive');
     }
 
     const titles = {
-      '/': 'README — none\'s vortex tools',
-      '/archive-downloader/': 'Vortex Archive Downloader',
-      '/version-checker/': 'Vortex Version Checker'
+      '/': 'none\'s vortex tools',
+      '/contributing/': 'none\'s vortex tools',
+      '/archive-downloader/': 'none\'s archive downloader',
+      '/version-checker/': 'none\'s version checker'
     };
     document.title = titles[route] || titles['/'];
   }
@@ -1473,6 +1528,7 @@
 
   const MARKER_NO_UPDATE = 'VORTEX_NO_UPDATE';
   const MARKER_STUDIO_NO_UPDATE = 'VORTEX_STUDIO_NO_UPDATE';
+  const MARKER_NOUPDATE_EXE = '_vortex.exe';
 
   const VERSION_REGEX = /v0\.[0-9]\.[0-9]{1,2}/g;
 
@@ -1613,6 +1669,9 @@
     const hasStudioNoUpdate =
       containsAscii(bytes, MARKER_STUDIO_NO_UPDATE);
 
+    const hasWrapper =
+      containsAscii(bytes, MARKER_NOUPDATE_EXE);
+
     if (!hasNoUpdate && !hasStudioNoUpdate) {
       showResult(false, 'Not a valid Vortex binary');
       return;
@@ -1640,7 +1699,8 @@
       true,
       null,
       type,
-      versionMatch
+      versionMatch,
+      hasWrapper
     );
   }
 
@@ -1648,7 +1708,8 @@
     found,
     message,
     type,
-    version
+    version,
+    hasWrapper
   ) {
     if (!found) {
       resultEl.innerHTML =
@@ -1676,19 +1737,7 @@
         '<div class="headline">' +
           escapeHtml(headline) +
         '</div>' +
-
         '<div class="vc-details">' +
-
-          '<div class="row">' +
-            '<span class="k">update guard</span>' +
-            '<span class="v">' +
-              (
-                type === 'studio'
-                  ? 'VORTEX_STUDIO_NO_UPDATE'
-                  : 'VORTEX_NO_UPDATE'
-              ) +
-            '</span>' +
-          '</div>' +
 
           '<div class="row">' +
             '<span class="k">type</span>' +
@@ -1707,6 +1756,26 @@
                 '</div>'
               : ''
           ) +
+
+          '<div class="row">' +
+            '<span class="k">update guard</span>' +
+            '<span class="v">' +
+              (
+                type === 'studio'
+                  ? 'VORTEX_STUDIO_NO_UPDATE'
+                  : 'VORTEX_NO_UPDATE'
+              ) +
+            '</span>' +
+          '</div>' +
+
+          '<div class="row">' +
+            '<span class="k">wrapper</span>' +
+            '<span class="v ' +
+              (hasWrapper ? 'bool-true' : 'bool-false') +
+            '">' +
+              (hasWrapper ? 'TRUE' : 'FALSE') +
+            '</span>' +
+          '</div>' +
 
         '</div>' +
       '</div>';
