@@ -1117,7 +1117,6 @@
     }
   }
 
-
   async function downloadArtifact(runId, filename) {
     const url =
       WORKER_URL +
@@ -1126,34 +1125,13 @@
       '&filename=' +
       encodeURIComponent(filename);
 
-    const res = await fetch(url);
-
-    if (!res.ok) {
-      throw new Error(
-        'Worker returned ' +
-        res.status +
-        ': ' +
-        await res.text()
-      );
-    }
-
-    const blob = await res.blob();
-
-    const objUrl = URL.createObjectURL(blob);
-
     const link = document.createElement('a');
-    link.href = objUrl;
+    link.href = url;
     link.download = filename;
-
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-
-    setTimeout(() => {
-      URL.revokeObjectURL(objUrl);
-    }, 4000);
   }
-
 
   goButton.addEventListener('click', async () => {
     const type = buildType.value;
