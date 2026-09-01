@@ -1015,26 +1015,30 @@
       views[key].classList.toggle('active', key === route);
     });
 
-    mainCard.classList.toggle('wide', !!(config.wideMode && config.wideMode[route]));
-    mainEl.classList.toggle('wide', !!(config.wideMode && config.wideMode[route]));
+    mainCard.classList.toggle(
+      'wide',
+      !!(config.wideMode && config.wideMode[route])
+    );
 
-    navLinks.forEach((link) => link.classList.remove('active-nav'));
+    mainEl.classList.toggle(
+      'wide',
+      !!(config.wideMode && config.wideMode[route])
+    );
 
-    readmeNavLink.classList.remove('active');
-    contributingNavLink.classList.remove('active');
-
-    navDownloader.classList.remove('inactive');
-    navChecker.classList.remove('inactive');
-
-    navDownloader.classList.add('inactive');
-    navChecker.classList.add('inactive');
+    navLinks.forEach((link) => {
+      link.classList.remove('active-nav');
+      link.classList.remove('active');
+      link.classList.add('inactive');
+    });
 
     if (route === '/') {
       readmeNavLink.classList.add('active');
+      readmeNavLink.classList.remove('inactive');
       loadReadme();
 
     } else if (route === '/contributing/') {
       contributingNavLink.classList.add('active');
+      contributingNavLink.classList.remove('inactive');
       loadContributing();
 
     } else if (route === '/archive-downloader/') {
@@ -1050,6 +1054,7 @@
       '/archive-downloader/': 'none\'s archive downloader',
       '/version-checker/': 'none\'s version checker'
     };
+
     document.title = titles[route] || titles['/'];
   }
 
@@ -1829,7 +1834,8 @@
     const deployments = data.workflow_runs
       .filter(run =>
         run.path &&
-        run.path.includes('pages')
+        run.path.includes('pages') &&
+        run.status === 'completed'
       )
       .sort(
         (a, b) =>

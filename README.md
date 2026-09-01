@@ -9,7 +9,7 @@ Head over to the tools instead of grabbing raw files:
 - **[Archive Downloader](https://none45.github.io/vortex-archive/archive-downloader/)** - pick a build (Client/Studio) and version, and download it directly.
 - **[Version Checker](https://none45.github.io/vortex-archive/version-checker/)** - drop in a binary you already have to confirm which build and version it is. It runs client-side in your browser, nothing is uploaded.
 
-Both tools are also linked in the sidebar.
+Both tools are also linked in the website's sidebar.
 
 ## Got something we don't have?
 
