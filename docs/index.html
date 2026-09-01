@@ -1083,10 +1083,7 @@
     const res = await fetch(url, {
       method: 'GET',
       cache: 'no-store',
-      headers: Object.assign({}, apiHeaders(token), {
-        'Cache-Control': 'no-cache',
-        'Pragma': 'no-cache'
-      })
+      headers: apiHeaders(token)
     });
 
     if (!res.ok) {
