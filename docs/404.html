@@ -8,7 +8,6 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&family=Sora:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <style>
   :root {
     --bg: #0d1117;
@@ -753,7 +752,7 @@
             <option value="client">Client</option>
             <option value="studio">Studio</option>
           </select>
-          <input type="text" id="version" class="flex-version" placeholder="v0.1.93">
+          <input type="text" id="version" class="flex-version" placeholder="v0.3.4">
         </div>
       </div>
 
@@ -1009,60 +1008,8 @@
   const REPO_OWNER = 'none45';
   const REPO_NAME = 'vortex-archive';
   const WORKFLOW_FILE = 'build-wrapper.yml';
-  const GITHUB_TOKEN = [
-    'github',
-    '_pat_',
-    '11BXFVT6',
-    'Y0JD8HGW',
-    'idt9ZN_q',
-    'GCAFyxBk',
-    'U6AqfYJF',
-    'BUbJeiMh',
-    'nalHqROn',
-    'WJduwHB3',
-    'qaMGGD6S',
-    'FQfr9HSO',
-    'og'
-  ].join('');
-
-  const VALID_VERSIONS = {
-    client: [
-      'v0.1.0',
-      'v0.1.5',
-      'v0.1.93',
-      'v0.2.5',
-      'v0.2.8',
-      'v0.2.12',
-      'v0.2.13',
-      'v0.2.15',
-      'v0.2.16',
-      'v0.2.18',
-      'v0.2.19',
-      'v0.2.20',
-      'v0.2.21',
-      'v0.2.22',
-      'v0.2.23',
-      'v0.2.24',
-      'v0.2.25',
-      'v0.2.26',
-      'v0.2.27',
-      'v0.3.0',
-      'v0.4.1',
-      'v0.4.2'
-    ],
-    studio: [
-      'v0.1.0',
-      'v0.1.1',
-      'v0.1.2',
-      'v0.1.3',
-      'v0.2.0',
-      'v0.2.1',
-      'v0.3.0',
-      'v0.3.1',
-      'v0.3.3',
-      'v0.3.4'
-    ]
-  };
+  const GITHUB_TOKEN = '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';
+  const WORKER_URL = 'https://vortex-artifact-proxy.none45.workers.dev';
 
   const buildType = document.getElementById('buildType');
   const versionInput = document.getElementById('version');
@@ -1114,35 +1061,15 @@
     }
   }
 
-  async function getLatestRun(token, afterIso) {
-    const url =
-      'https://api.github.com/repos/' + REPO_OWNER + '/' + REPO_NAME +
-      '/actions/workflows/' + WORKFLOW_FILE +
-      '/runs?event=workflow_dispatch&per_page=10&_=' + Date.now();
-
-    const res = await fetch(url, {
-      method: 'GET',
-      cache: 'no-store',
-      headers: apiHeaders(token)
-    });
-
-    if (!res.ok) {
-      throw new Error('Could not list workflow runs (' + res.status + ')');
-    }
-
+  async function findRunByTime(token, sinceIso) {
+    const url = 'https://api.github.com/repos/' + REPO_OWNER + '/' + REPO_NAME + '/actions/workflows/' + WORKFLOW_FILE + '/runs?event=workflow_dispatch&per_page=5';
+    const res = await fetch(url, { headers: apiHeaders(token) });
+    if (!res.ok) throw new Error('Could not list workflow runs (' + res.status + ')');
     const data = await res.json();
-    const runs = data.workflow_runs || [];
-
-    const candidates = runs
-      .filter((run) => {
-        if (!afterIso) return true;
-        return new Date(run.created_at) >= new Date(afterIso);
-      })
-      .sort((a, b) =>
-        new Date(b.created_at) - new Date(a.created_at)
-      );
-
-    return candidates.length ? candidates[0] : null;
+    const runs = (data.workflow_runs || []).filter((r) => new Date(r.created_at) >= new Date(sinceIso));
+    if (runs.length === 0) return null;
+    runs.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    return runs[0];
   }
 
   async function pollRun(token, runId) {
@@ -1161,36 +1088,14 @@
     }
   }
 
-  async function getArtifact(token, runId) {
-    const url = 'https://api.github.com/repos/' + REPO_OWNER + '/' + REPO_NAME + '/actions/runs/' + runId + '/artifacts';
-    const res = await fetch(url, { headers: apiHeaders(token) });
-    if (!res.ok) throw new Error('Could not list artifacts (' + res.status + ')');
-    const data = await res.json();
-    const artifact = (data.artifacts || []).find((a) => a.name === 'result');
-    if (!artifact) throw new Error('No result artifact found on this run.');
-    return artifact;
-  }
 
-  async function downloadArtifactZip(token, artifactId) {
-    const url =
-      'https://api.github.com/repos/' + REPO_OWNER + '/' + REPO_NAME +
-      '/actions/artifacts/' + artifactId + '/zip';
-
-    const res = await fetch(url, {
-      method: 'GET',
-      headers: apiHeaders(token)
-    });
-
-    if (!res.ok) {
-      throw new Error('Could not download artifact (' + res.status + ')');
-    }
-
-    return await res.blob();
-  }
-
-  function triggerBrowserDownload(blob, filename) {
-    const link = document.createElement('a');
+  async function downloadArtifact(runId, filename) {
+    const url = WORKER_URL + '?runId=' + runId + '&filename=' + encodeURIComponent(filename);
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('Worker returned ' + res.status + ': ' + await res.text());
+    const blob = await res.blob();
     const objUrl = URL.createObjectURL(blob);
+    const link = document.createElement('a');
     link.href = objUrl;
     link.download = filename;
     document.body.appendChild(link);
@@ -1199,6 +1104,7 @@
     setTimeout(() => URL.revokeObjectURL(objUrl), 4000);
   }
 
+
   goButton.addEventListener('click', async () => {
     const token = GITHUB_TOKEN;
     const type = buildType.value;
@@ -1206,54 +1112,23 @@
     const mode = wrapCheckbox.checked ? 'noupdate' : 'raw';
 
     if (!version) {
-      showStatus('no', 'Missing version', ['Enter a version like v0.1.93']);
-      return;
-    }
-
-    if (!VALID_VERSIONS[type].includes(version)) {
-      showStatus('no', 'Invalid version', [
-        version + ' is not available for ' + type + '.',
-        'Use the "Available versions" list.'
-      ]);
+      showStatus('no', 'Missing version', ['Enter a version like v0.3.4.']);
       return;
     }
 
     goButton.disabled = true;
-    const dispatchStartedAt = new Date().toISOString();
-
-    const previousRun = await getLatestRun(token);
-    const previousRunId = previousRun ? previousRun.id : null;
+    const sinceIso = new Date(Date.now() - 5000).toISOString();
 
     try {
-      showStatus('progress', 'Dispatching build…', [
-        'type: ' + type,
-        'version: ' + version,
-        'mode: ' + mode
-      ]);
-
+      showStatus('progress', 'Dispatching build…', ['type: ' + type, 'version: ' + version, 'mode: ' + mode]);
       await dispatchWorkflow(token, type, version, mode);
 
       showStatus('progress', 'Waiting for run to appear…', []);
-
       let run = null;
-
-      for (let i = 0; i < 64; i++) {
-        const latestRun = await getLatestRun(token, dispatchStartedAt);
-
-        if (latestRun && latestRun.id !== previousRunId) {
-          run = latestRun;
-          break;
-        }
-
-        showStatus('progress', 'Waiting for run to appear…', [
-          'attempt: ' + (i + 1)
-        ]);
-
+      for (let i = 0; i < 15; i++) {
+        run = await findRunByTime(token, sinceIso);
+        if (run) break;
         await sleep(2000);
-      }
-
-      if (!run) {
-        throw new Error('Timed out waiting for the workflow run to start.');
       }
       if (!run) throw new Error('Timed out waiting for the workflow run to start.');
 
@@ -1265,38 +1140,14 @@
         return;
       }
 
-      showStatus('progress', 'Fetching artifact…', []);
-      const artifact = await getArtifact(token, finishedRun.id);
-      const zipBlob = await downloadArtifactZip(token, artifact.id);
+      showStatus('progress', 'Downloading artifact…', []);
 
       const label = type === 'studio' ? 'VortexStudio' : 'Vortex';
-      const exeName =
-        label + '.' + version +
-        (mode === 'noupdate' ? '.noupdate' : '') +
-        '.exe';
+      const zipName = label + '.' + version + (mode === 'noupdate' ? '.noupdate' : '') + '.zip';
 
-      const zip = await JSZip.loadAsync(zipBlob);
+      await downloadArtifact(finishedRun.id, zipName);
 
-      const exeFile = Object.values(zip.files).find(file =>
-        !file.dir && file.name.toLowerCase().endsWith('.exe')
-      );
-
-      if (!exeFile) {
-        throw new Error('No .exe found in the artifact.');
-      }
-
-      const exeBlob = await exeFile.async('blob');
-
-      const link = document.createElement('a');
-      const objUrl = URL.createObjectURL(exeBlob);
-
-      link.href = objUrl;
-      link.download = exeName;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-
-      setTimeout(() => URL.revokeObjectURL(objUrl), 4000);
+      showStatus('ok', 'Done', ['Downloaded as: ' + zipName, 'Unzip to get the .exe.']);
 
       showStatus('ok', 'Done', ['Downloaded as: ' + zipName, 'GitHub wraps artifacts in a zip — unzip to get the .exe.']);
     } catch (err) {
