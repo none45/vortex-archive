@@ -1538,6 +1538,23 @@
     reader.readAsArrayBuffer(file);
   }
 
+  function containsAscii(bytes, text) {
+    const target = new TextEncoder().encode(text);
+
+    outer:
+    for (let i = 0; i <= bytes.length - target.length; i++) {
+      for (let j = 0; j < target.length; j++) {
+        if (bytes[i + j] !== target[j]) {
+          continue outer;
+        }
+      }
+
+      return true;
+    }
+
+    return false;
+  }
+
   function extractStrings(bytes, minLen) {
     minLen = minLen || 4;
 
@@ -1590,14 +1607,11 @@
   }
 
   function analyze(bytes) {
-    const strings = extractStrings(bytes, 4);
-    const joined = strings.join('\n');
-
     const hasNoUpdate =
-      joined.indexOf(MARKER_NO_UPDATE) !== -1;
+      containsAscii(bytes, MARKER_NO_UPDATE);
 
     const hasStudioNoUpdate =
-      joined.indexOf(MARKER_STUDIO_NO_UPDATE) !== -1;
+      containsAscii(bytes, MARKER_STUDIO_NO_UPDATE);
 
     if (!hasNoUpdate && !hasStudioNoUpdate) {
       showResult(false, 'Not a valid Vortex binary');
@@ -1608,6 +1622,8 @@
       hasStudioNoUpdate
         ? 'studio'
         : 'client';
+
+    const strings = extractStrings(bytes, 4);
 
     let versionMatch = null;
 
