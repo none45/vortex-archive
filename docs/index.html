@@ -1401,5 +1401,265 @@
   });
 })();
 </script>
+
+<script>
+(function () {
+  const fileInput = document.getElementById('fileInput');
+  const drop = document.getElementById('drop');
+  const filenameEl = document.getElementById('filename');
+  const progressEl = document.getElementById('vc-progress');
+  const resultEl = document.getElementById('vc-result');
+
+  const MARKER_NO_UPDATE = 'VORTEX_NO_UPDATE';
+  const MARKER_STUDIO_NO_UPDATE = 'VORTEX_STUDIO_NO_UPDATE';
+
+  // v0.1.X, v0.1.XX, v0.2.X ... v0.5.XX
+  const VERSION_REGEX = /v0\.[0-9]\.[0-9]{1,2}/g;
+
+  drop.addEventListener('click', () => fileInput.click());
+
+  drop.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    drop.classList.add('dragover');
+  });
+
+  drop.addEventListener('dragleave', () => {
+    drop.classList.remove('dragover');
+  });
+
+  drop.addEventListener('drop', (e) => {
+    e.preventDefault();
+    drop.classList.remove('dragover');
+
+    if (e.dataTransfer.files.length) {
+      fileInput.files = e.dataTransfer.files;
+      handleFile(e.dataTransfer.files[0]);
+    }
+  });
+
+  fileInput.addEventListener('change', () => {
+    if (fileInput.files.length) {
+      handleFile(fileInput.files[0]);
+    }
+  });
+
+  function handleFile(file) {
+    filenameEl.textContent =
+      file.name + '  (' + formatBytes(file.size) + ')';
+
+    resultEl.innerHTML = '';
+    progressEl.textContent = 'Reading file…';
+
+    const reader = new FileReader();
+
+    reader.onerror = () => {
+      progressEl.textContent = '';
+      showResult(false, 'Not a Vortex binary.');
+    };
+
+    reader.onload = (e) => {
+      progressEl.textContent = 'Scanning…';
+
+      setTimeout(() => {
+        try {
+          const bytes = new Uint8Array(e.target.result);
+          analyze(bytes);
+        } catch (err) {
+          showResult(
+            false,
+            'Error while scanning: ' + err.message
+          );
+        }
+
+        progressEl.textContent = '';
+      }, 10);
+    };
+
+    reader.readAsArrayBuffer(file);
+  }
+
+  function extractStrings(bytes, minLen) {
+    minLen = minLen || 4;
+
+    const results = [];
+    let start = -1;
+
+    for (let i = 0; i < bytes.length; i++) {
+      const b = bytes[i];
+      const printable = b >= 32 && b <= 126;
+
+      if (printable) {
+        if (start === -1) {
+          start = i;
+        }
+      } else {
+        if (start !== -1) {
+          const len = i - start;
+
+          if (len >= minLen) {
+            results.push(
+              bytesToAscii(bytes, start, i)
+            );
+          }
+
+          start = -1;
+        }
+      }
+    }
+
+    if (
+      start !== -1 &&
+      bytes.length - start >= minLen
+    ) {
+      results.push(
+        bytesToAscii(bytes, start, bytes.length)
+      );
+    }
+
+    return results;
+  }
+
+  function bytesToAscii(bytes, start, end) {
+    let s = '';
+
+    for (let i = start; i < end; i++) {
+      s += String.fromCharCode(bytes[i]);
+    }
+
+    return s;
+  }
+
+  function analyze(bytes) {
+    const strings = extractStrings(bytes, 4);
+    const joined = strings.join('\n');
+
+    const hasNoUpdate =
+      joined.indexOf(MARKER_NO_UPDATE) !== -1;
+
+    const hasStudioNoUpdate =
+      joined.indexOf(MARKER_STUDIO_NO_UPDATE) !== -1;
+
+    if (!hasNoUpdate) {
+      showResult(false, 'Not a Vortex binary.');
+      return;
+    }
+
+    const type =
+      hasStudioNoUpdate
+        ? 'studio'
+        : 'client';
+
+    let versionMatch = null;
+
+    for (const s of strings) {
+      const m = s.match(VERSION_REGEX);
+
+      if (m && m.length) {
+        versionMatch = m[0];
+        break;
+      }
+    }
+
+    showResult(
+      true,
+      null,
+      type,
+      versionMatch
+    );
+  }
+
+  function showResult(
+    found,
+    message,
+    type,
+    version
+  ) {
+    if (!found) {
+      resultEl.innerHTML =
+        '<div class="vc-result-box no">' +
+          '<div class="headline">' +
+            escapeHtml(message) +
+          '</div>' +
+        '</div>';
+
+      return;
+    }
+
+    const label =
+      type === 'studio'
+        ? 'Vortex Studio'
+        : 'Vortex';
+
+    const headline =
+      version
+        ? label + ' — ' + version
+        : label + ' — version not found';
+
+    resultEl.innerHTML =
+      '<div class="vc-result-box ok">' +
+        '<div class="headline">' +
+          escapeHtml(headline) +
+        '</div>' +
+
+        '<div class="vc-details">' +
+
+          '<div class="row">' +
+            '<span class="k">update guard</span>' +
+            '<span class="v">' +
+              (
+                type === 'studio'
+                  ? 'VORTEX_STUDIO_NO_UPDATE'
+                  : 'VORTEX_NO_UPDATE'
+              ) +
+            '</span>' +
+          '</div>' +
+
+          '<div class="row">' +
+            '<span class="k">type</span>' +
+            '<span class="v">' +
+              type +
+            '</span>' +
+          '</div>' +
+
+          (
+            version
+              ? '<div class="row">' +
+                  '<span class="k">version string</span>' +
+                  '<span class="v">' +
+                    escapeHtml(version) +
+                  '</span>' +
+                '</div>'
+              : ''
+          ) +
+
+        '</div>' +
+      '</div>';
+  }
+
+  function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  function formatBytes(bytes) {
+    if (bytes === 0) return '0 B';
+
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(
+      Math.log(bytes) / Math.log(k)
+    );
+
+    return (
+      parseFloat(
+        (bytes / Math.pow(k, i)).toFixed(1)
+      ) +
+      ' ' +
+      sizes[i]
+    );
+  }
+})();
+</script>
 </body>
 </html>
