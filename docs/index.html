@@ -1074,15 +1074,28 @@
     }
   }
 
-  async function findRunByTime(token, sinceIso) {
-    const url = 'https://api.github.com/repos/' + REPO_OWNER + '/' + REPO_NAME + '/actions/workflows/' + WORKFLOW_FILE + '/runs?event=workflow_dispatch&per_page=5';
-    const res = await fetch(url, { headers: apiHeaders(token) });
-    if (!res.ok) throw new Error('Could not list workflow runs (' + res.status + ')');
+  async function getLatestRun(token) {
+    const url =
+      'https://api.github.com/repos/' + REPO_OWNER + '/' + REPO_NAME +
+      '/actions/workflows/' + WORKFLOW_FILE +
+      '/runs?event=workflow_dispatch&per_page=10';
+
+    const res = await fetch(url, {
+      headers: apiHeaders(token)
+    });
+
+    if (!res.ok) {
+      throw new Error('Could not list workflow runs (' + res.status + ')');
+    }
+
     const data = await res.json();
-    const runs = (data.workflow_runs || []).filter((r) => new Date(r.created_at) >= new Date(sinceIso));
-    if (runs.length === 0) return null;
-    runs.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-    return runs[0];
+    const runs = data.workflow_runs || [];
+
+    runs.sort((a, b) =>
+      new Date(b.created_at) - new Date(a.created_at)
+    );
+
+    return runs.length ? runs[0] : null;
   }
 
   async function pollRun(token, runId) {
@@ -1143,16 +1156,39 @@
     goButton.disabled = true;
     const sinceIso = new Date(Date.now() - 5000).toISOString();
 
+    const previousRun = await getLatestRun(token);
+    const previousRunId = previousRun ? previousRun.id : null;
+
     try {
-      showStatus('progress', 'Dispatching build…', ['type: ' + type, 'version: ' + version, 'mode: ' + mode]);
+      showStatus('progress', 'Dispatching build…', [
+        'type: ' + type,
+        'version: ' + version,
+        'mode: ' + mode
+      ]);
+
       await dispatchWorkflow(token, type, version, mode);
 
       showStatus('progress', 'Waiting for run to appear…', []);
+
       let run = null;
-      for (let i = 0; i < 60; i++) {
-        run = await findRunByTime(token, sinceIso);
-        if (run) break;
+
+      for (let i = 0; i < 150; i++) {
+        const latestRun = await getLatestRun(token);
+
+        if (latestRun && latestRun.id !== previousRunId) {
+          run = latestRun;
+          break;
+        }
+
+        showStatus('progress', 'Waiting for run to appear…', [
+          'attempt: ' + (i + 1) + '/150'
+        ]);
+
         await sleep(2000);
+      }
+
+      if (!run) {
+        throw new Error('Timed out waiting for the workflow run to start.');
       }
       if (!run) throw new Error('Timed out waiting for the workflow run to start.');
 
