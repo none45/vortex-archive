@@ -1235,7 +1235,7 @@
         (mode === 'noupdate'
           ? '.noupdate'
           : '') +
-        '.zip';
+        '.exe';
 
 
       await downloadArtifact(
@@ -1248,8 +1248,7 @@
         'ok',
         'Done',
         [
-          'Downloaded as: ' + zipName,
-          'GitHub wraps artifacts in a zip — unzip to get the .exe.'
+          'Downloaded as: ' + zipName
         ]
       );
 
