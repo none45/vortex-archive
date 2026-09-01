@@ -1,287 +1,287 @@
 name: Build Vortex Wrapper
 
 on:
-workflow_dispatch:
-inputs:
-build_type:
-description: "client or studio"
-required: true
-type: string
-version:
-description: "e.g. v0.3.4"
-required: true
-type: string
-mode:
-description: "raw or noupdate"
-required: true
-type: string
+  workflow_dispatch:
+    inputs:
+      build_type:
+        description: "client or studio"
+        required: true
+        type: string
+      version:
+        description: "e.g. v0.3.4"
+        required: true
+        type: string
+      mode:
+        description: "raw or noupdate"
+        required: true
+        type: string
 
 jobs:
-build:
-runs-on: ubuntu-latest
+  build:
+    runs-on: ubuntu-latest
 
-steps:
-  - name: Validate inputs
-    run: |
-      B_TYPE=$(echo "${{ inputs.build_type }}" | tr 'A-Z' 'a-z')
-      MODE=$(echo "${{ inputs.mode }}" | tr 'A-Z' 'a-z')
+    steps:
+      - name: Validate inputs
+        run: |
+          B_TYPE=$(echo "${{ inputs.build_type }}" | tr 'A-Z' 'a-z')
+          MODE=$(echo "${{ inputs.mode }}" | tr 'A-Z' 'a-z')
 
-      if [[ "$B_TYPE" != "client" && "$B_TYPE" != "studio" ]]; then
-        echo "::error::build_type must be 'client' or 'studio'"
-        exit 1
-      fi
+          if [[ "$B_TYPE" != "client" && "$B_TYPE" != "studio" ]]; then
+            echo "::error::build_type must be 'client' or 'studio'"
+            exit 1
+          fi
 
-      if [[ "$MODE" != "raw" && "$MODE" != "noupdate" ]]; then
-        echo "::error::mode must be 'raw' or 'studio'"
-        exit 1
-      fi
+          if [[ "$MODE" != "raw" && "$MODE" != "noupdate" ]]; then
+            echo "::error::mode must be 'raw' or 'noupdate'"
+            exit 1
+          fi
 
-      if [[ -z "${{ inputs.version }}" ]]; then
-        echo "::error::version is required"
-        exit 1
-      fi
+          if [[ -z "${{ inputs.version }}" ]]; then
+            echo "::error::version is required"
+            exit 1
+          fi
 
-  - name: Set up variables
-    id: vars
-    run: |
-      B_TYPE=$(echo "${{ inputs.build_type }}" | tr 'A-Z' 'a-z')
-      VERSION="${{ inputs.version }}"
-      MODE=$(echo "${{ inputs.mode }}" | tr 'A-Z' 'a-z')
+      - name: Set up variables
+        id: vars
+        run: |
+          B_TYPE=$(echo "${{ inputs.build_type }}" | tr 'A-Z' 'a-z')
+          VERSION="${{ inputs.version }}"
+          MODE=$(echo "${{ inputs.mode }}" | tr 'A-Z' 'a-z')
 
-      if [ "$B_TYPE" == "studio" ]; then
-        NO_UPDATE_ENV="VORTEX_STUDIO_NO_UPDATE"
-        FILE_NAME="VortexStudio.${VERSION}.exe"
-        TAG="studio_${VERSION}"
-      else
-        NO_UPDATE_ENV="VORTEX_NO_UPDATE"
-        FILE_NAME="Vortex.${VERSION}.exe"
-        TAG="client_${VERSION}"
-      fi
+          if [ "$B_TYPE" == "studio" ]; then
+            NO_UPDATE_ENV="VORTEX_STUDIO_NO_UPDATE"
+            FILE_NAME="VortexStudio.${VERSION}.exe"
+            TAG="studio_${VERSION}"
+          else
+            NO_UPDATE_ENV="VORTEX_NO_UPDATE"
+            FILE_NAME="Vortex.${VERSION}.exe"
+            TAG="client_${VERSION}"
+          fi
 
-      OUTPUT_NAME="${FILE_NAME%.exe}.noupdate.exe"
+          OUTPUT_NAME="${FILE_NAME%.exe}.noupdate.exe"
 
-      echo "b_type=$B_TYPE" >> "$GITHUB_OUTPUT"
-      echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-      echo "mode=$MODE" >> "$GITHUB_OUTPUT"
-      echo "no_update_env=$NO_UPDATE_ENV" >> "$GITHUB_OUTPUT"
-      echo "file_name=$FILE_NAME" >> "$GITHUB_OUTPUT"
-      echo "tag=$TAG" >> "$GITHUB_OUTPUT"
-      echo "output_name=$OUTPUT_NAME" >> "$GITHUB_OUTPUT"
+          echo "b_type=$B_TYPE" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "mode=$MODE" >> "$GITHUB_OUTPUT"
+          echo "no_update_env=$NO_UPDATE_ENV" >> "$GITHUB_OUTPUT"
+          echo "file_name=$FILE_NAME" >> "$GITHUB_OUTPUT"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "output_name=$OUTPUT_NAME" >> "$GITHUB_OUTPUT"
 
-  - name: Download release asset
-    env:
-      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    run: |
-      gh release download "${{ steps.vars.outputs.tag }}" \
-        --repo "${{ github.repository }}" \
-        --pattern "${{ steps.vars.outputs.file_name }}" \
-        --output "_vortex.exe"
+      - name: Download release asset
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release download "${{ steps.vars.outputs.tag }}" \
+            --repo "${{ github.repository }}" \
+            --pattern "${{ steps.vars.outputs.file_name }}" \
+            --output "_vortex.exe"
 
-  - name: Copy raw file
-    if: steps.vars.outputs.mode == 'raw'
-    run: |
-      cp "_vortex.exe" "${{ steps.vars.outputs.file_name }}"
+      - name: Copy raw file
+        if: steps.vars.outputs.mode == 'raw'
+        run: |
+          cp "_vortex.exe" "${{ steps.vars.outputs.file_name }}"
 
-  - name: Cache APT packages
-    if: steps.vars.outputs.mode == 'noupdate'
-    uses: actions/cache@v4
-    with:
-      path: /var/cache/apt/archives
-      key: apt-${{ runner.os }}-${{ runner.arch }}-mingw-icoutils-v1
-      restore-keys: |
-        apt-${{ runner.os }}-${{ runner.arch }}-
+      - name: Cache APT packages
+        if: steps.vars.outputs.mode == 'noupdate'
+        uses: actions/cache@v4
+        with:
+          path: /var/cache/apt/archives
+          key: apt-${{ runner.os }}-${{ runner.arch }}-mingw-icoutils-v1
+          restore-keys: |
+            apt-${{ runner.os }}-${{ runner.arch }}-
 
-  - name: Install build dependencies
-    if: steps.vars.outputs.mode == 'noupdate'
-    run: |
-      sudo apt-get update
-      sudo apt-get install -y mingw-w64 icoutils
+      - name: Install build dependencies
+        if: steps.vars.outputs.mode == 'noupdate'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y mingw-w64 icoutils
 
-  - name: Build no-update wrapper
-    if: steps.vars.outputs.mode == 'noupdate'
-    run: |
-      set -e
+      - name: Build no-update wrapper
+        if: steps.vars.outputs.mode == 'noupdate'
+        run: |
+          set -e
 
-      NO_UPDATE_ENV="${{ steps.vars.outputs.no_update_env }}"
-      OUTPUT_NAME="${{ steps.vars.outputs.output_name }}"
+          NO_UPDATE_ENV="${{ steps.vars.outputs.no_update_env }}"
+          OUTPUT_NAME="${{ steps.vars.outputs.output_name }}"
 
-      WRAPPER_C="wrapper.c"
-      VORTEX_O="_vortex.o"
-      ICON_FILE="vortex.ico"
-      RESOURCE_RC="wrapper.rc"
-      RESOURCE_O="wrapper_res.o"
+          WRAPPER_C="wrapper.c"
+          VORTEX_O="_vortex.o"
+          ICON_FILE="vortex.ico"
+          RESOURCE_RC="wrapper.rc"
+          RESOURCE_O="wrapper_res.o"
 
-      cat > "$WRAPPER_C" <<EOF
-      #include <windows.h>
-      #include <stdio.h>
+          cat > "$WRAPPER_C" <<EOF
+          #include <windows.h>
+          #include <stdio.h>
 
-      extern unsigned char _binary__vortex_exe_start[];
-      extern unsigned char _binary__vortex_exe_end[];
+          extern unsigned char _binary__vortex_exe_start[];
+          extern unsigned char _binary__vortex_exe_end[];
 
-      int main(void)
-      {
-          const unsigned char *exe_data = _binary__vortex_exe_start;
-
-          DWORD exe_size =
-              (DWORD)(_binary__vortex_exe_end -
-                      _binary__vortex_exe_start);
-
-          if (!SetEnvironmentVariableA("$NO_UPDATE_ENV", "1"))
+          int main(void)
           {
-              MessageBoxA(NULL, "Failed to set environment variable.", "Wrapper Error", MB_ICONERROR);
-              return 1;
-          }
+              const unsigned char *exe_data = _binary__vortex_exe_start;
 
-          char temp_path[MAX_PATH];
-          DWORD temp_len = GetTempPathA(sizeof(temp_path), temp_path);
+              DWORD exe_size =
+                  (DWORD)(_binary__vortex_exe_end -
+                          _binary__vortex_exe_start);
 
-          if (temp_len == 0 || temp_len >= sizeof(temp_path))
-          {
-              MessageBoxA(NULL, "Failed to get temporary directory.", "Wrapper Error", MB_ICONERROR);
-              return 1;
-          }
+              if (!SetEnvironmentVariableA("$NO_UPDATE_ENV", "1"))
+              {
+                  MessageBoxA(NULL, "Failed to set environment variable.", "Wrapper Error", MB_ICONERROR);
+                  return 1;
+              }
 
-          char temp_file[MAX_PATH];
+              char temp_path[MAX_PATH];
+              DWORD temp_len = GetTempPathA(sizeof(temp_path), temp_path);
 
-          if (GetTempFileNameA(temp_path, "vrx", 0, temp_file) == 0)
-          {
-              MessageBoxA(NULL, "Failed to create temporary file.", "Wrapper Error", MB_ICONERROR);
-              return 1;
-          }
+              if (temp_len == 0 || temp_len >= sizeof(temp_path))
+              {
+                  MessageBoxA(NULL, "Failed to get temporary directory.", "Wrapper Error", MB_ICONERROR);
+                  return 1;
+              }
 
-          HANDLE file = CreateFileA(
-              temp_file,
-              GENERIC_WRITE,
-              0,
-              NULL,
-              CREATE_ALWAYS,
-              FILE_ATTRIBUTE_NORMAL,
-              NULL
-          );
+              char temp_file[MAX_PATH];
 
-          if (file == INVALID_HANDLE_VALUE)
-          {
+              if (GetTempFileNameA(temp_path, "vrx", 0, temp_file) == 0)
+              {
+                  MessageBoxA(NULL, "Failed to create temporary file.", "Wrapper Error", MB_ICONERROR);
+                  return 1;
+              }
+
+              HANDLE file = CreateFileA(
+                  temp_file,
+                  GENERIC_WRITE,
+                  0,
+                  NULL,
+                  CREATE_ALWAYS,
+                  FILE_ATTRIBUTE_NORMAL,
+                  NULL
+              );
+
+              if (file == INVALID_HANDLE_VALUE)
+              {
+                  DeleteFileA(temp_file);
+                  MessageBoxA(NULL, "Failed to write embedded executable.", "Wrapper Error", MB_ICONERROR);
+                  return 1;
+              }
+
+              DWORD written = 0;
+
+              BOOL write_ok = WriteFile(
+                  file,
+                  exe_data,
+                  exe_size,
+                  &written,
+                  NULL
+              );
+
+              CloseHandle(file);
+
+              if (!write_ok || written != exe_size)
+              {
+                  DeleteFileA(temp_file);
+                  MessageBoxA(NULL, "Failed to write complete executable.", "Wrapper Error", MB_ICONERROR);
+                  return 1;
+              }
+
+              STARTUPINFOA si;
+              PROCESS_INFORMATION pi;
+
+              ZeroMemory(&si, sizeof(si));
+              ZeroMemory(&pi, sizeof(pi));
+
+              si.cb = sizeof(si);
+
+              char command_line[MAX_PATH + 2];
+
+              snprintf(
+                  command_line,
+                  sizeof(command_line),
+                  "\"%s\"",
+                  temp_file
+              );
+
+              BOOL process_ok = CreateProcessA(
+                  NULL,
+                  command_line,
+                  NULL,
+                  NULL,
+                  FALSE,
+                  0,
+                  NULL,
+                  NULL,
+                  &si,
+                  &pi
+              );
+
+              if (!process_ok)
+              {
+                  DeleteFileA(temp_file);
+                  MessageBoxA(NULL, "Failed to launch _vortex.exe.", "Wrapper Error", MB_ICONERROR);
+                  return 1;
+              }
+
+              WaitForSingleObject(
+                  pi.hProcess,
+                  INFINITE
+              );
+
+              CloseHandle(pi.hProcess);
+              CloseHandle(pi.hThread);
+
               DeleteFileA(temp_file);
-              MessageBoxA(NULL, "Failed to write embedded executable.", "Wrapper Error", MB_ICONERROR);
-              return 1;
+
+              return 0;
           }
+          EOF
 
-          DWORD written = 0;
+          wrestool -x -t14 -o . "_vortex.exe"
 
-          BOOL write_ok = WriteFile(
-              file,
-              exe_data,
-              exe_size,
-              &written,
-              NULL
-          );
+          EXTRACTED_ICON=$(find . -maxdepth 1 -type f -name "*.ico" | head -n 1)
 
-          CloseHandle(file);
+          if [ -z "$EXTRACTED_ICON" ]; then
+            echo "::error::Failed to extract icon from Vortex executable."
+            exit 1
+          fi
 
-          if (!write_ok || written != exe_size)
-          {
-              DeleteFileA(temp_file);
-              MessageBoxA(NULL, "Failed to write complete executable.", "Wrapper Error", MB_ICONERROR);
-              return 1;
-          }
+          mv "$EXTRACTED_ICON" "$ICON_FILE"
 
-          STARTUPINFOA si;
-          PROCESS_INFORMATION pi;
+          cat > "$RESOURCE_RC" <<EOF
+          1 ICON "$ICON_FILE"
+          EOF
 
-          ZeroMemory(&si, sizeof(si));
-          ZeroMemory(&pi, sizeof(pi));
+          x86_64-w64-mingw32-windres \
+            "$RESOURCE_RC" \
+            -O coff \
+            -o "$RESOURCE_O"
 
-          si.cb = sizeof(si);
+          x86_64-w64-mingw32-objcopy \
+            --input-target=binary \
+            --output-target=pe-x86-64 \
+            --binary-architecture=i386:x86-64 \
+            "_vortex.exe" \
+            "$VORTEX_O"
 
-          char command_line[MAX_PATH + 2];
+          x86_64-w64-mingw32-gcc \
+            -mwindows \
+            "$WRAPPER_C" \
+            "$VORTEX_O" \
+            "$RESOURCE_O" \
+            -o "$OUTPUT_NAME"
 
-          snprintf(
-              command_line,
-              sizeof(command_line),
-              "\"%s\"",
-              temp_file
-          );
+      - name: Upload artifact (raw)
+        if: steps.vars.outputs.mode == 'raw'
+        uses: actions/upload-artifact@v4
+        with:
+          name: result
+          path: ${{ steps.vars.outputs.file_name }}
+          retention-days: 1
 
-          BOOL process_ok = CreateProcessA(
-              NULL,
-              command_line,
-              NULL,
-              NULL,
-              FALSE,
-              0,
-              NULL,
-              NULL,
-              &si,
-              &pi
-          );
-
-          if (!process_ok)
-          {
-              DeleteFileA(temp_file);
-              MessageBoxA(NULL, "Failed to launch _vortex.exe.", "Wrapper Error", MB_ICONERROR);
-              return 1;
-          }
-
-          WaitForSingleObject(
-              pi.hProcess,
-              INFINITE
-          );
-
-          CloseHandle(pi.hProcess);
-          CloseHandle(pi.hThread);
-
-          DeleteFileA(temp_file);
-
-          return 0;
-      }
-      EOF
-
-      wrestool -x -t14 -o . "_vortex.exe"
-
-      EXTRACTED_ICON=$(find . -maxdepth 1 -type f -name "*.ico" | head -n 1)
-
-      if [ -z "$EXTRACTED_ICON" ]; then
-        echo "::error::Failed to extract icon from Vortex executable."
-        exit 1
-      fi
-
-      mv "$EXTRACTED_ICON" "$ICON_FILE"
-
-      cat > "$RESOURCE_RC" <<EOF
-      1 ICON "$ICON_FILE"
-      EOF
-
-      x86_64-w64-mingw32-windres \
-        "$RESOURCE_RC" \
-        -O coff \
-        -o "$RESOURCE_O"
-
-      x86_64-w64-mingw32-objcopy \
-        --input-target=binary \
-        --output-target=pe-x86-64 \
-        --binary-architecture=i386:x86-64 \
-        "_vortex.exe" \
-        "$VORTEX_O"
-
-      x86_64-w64-mingw32-gcc \
-        -mwindows \
-        "$WRAPPER_C" \
-        "$VORTEX_O" \
-        "$RESOURCE_O" \
-        -o "$OUTPUT_NAME"
-
-  - name: Upload artifact (raw)
-    if: steps.vars.outputs.mode == 'raw'
-    uses: actions/upload-artifact@v4
-    with:
-      name: result
-      path: ${{ steps.vars.outputs.file_name }}
-      retention-days: 1
-
-  - name: Upload artifact (noupdate)
-    if: steps.vars.outputs.mode == 'noupdate'
-    uses: actions/upload-artifact@v4
-    with:
-      name: result
-      path: ${{ steps.vars.outputs.output_name }}
-      retention-days: 1
+      - name: Upload artifact (noupdate)
+        if: steps.vars.outputs.mode == 'noupdate'
+        uses: actions/upload-artifact@v4
+        with:
+          name: result
+          path: ${{ steps.vars.outputs.output_name }}
+          retention-days: 1
