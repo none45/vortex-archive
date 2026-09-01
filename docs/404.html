@@ -1266,7 +1266,7 @@
       'v' + version.replace(/^v/i, '');
 
     if (
-      !availableVersions[type].includes(normalizedVersion)
+      !window.availableVersions[type].includes(normalizedVersion)
     ) {
       showStatus(
         'no',
