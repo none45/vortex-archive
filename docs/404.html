@@ -770,7 +770,7 @@
 
       <div id="dl-status"></div>
 
-      <footer>Requests go only to GitHub's API, nothing else is contacted.</footer>
+      <footer>Requests go only to GitHub's API and a Cloudflare proxy, nothing else is contacted.</footer>
     </div>
 
     <div class="view" id="view-checker">
@@ -1005,10 +1005,14 @@
 
 <script>
 (function () {
-  const REPO_OWNER = 'none45';
-  const REPO_NAME = 'vortex-archive';
-  const WORKFLOW_FILE = 'build-wrapper.yml';
-  const WORKER_URL = 'https://vortex-artifact-proxy.none45.workers.dev';
+  const WORKER_URL =
+    'https://vortex-artifact-proxy.none45.workers.dev';
+
+  const buildType = document.getElementById('buildType');
+  const versionInput = document.getElementById('version');
+  const wrapCheckbox = document.getElementById('wrapCheckbox');
+  const goButton = document.getElementById('goButton');
+  const statusEl = document.getElementById('dl-status');
 
   async function workerRequest(path, options = {}) {
     const res = await fetch(WORKER_URL + path, {
@@ -1020,24 +1024,63 @@
     });
 
     if (!res.ok) {
+      const text = await res.text();
       throw new Error(
-        'Worker returned ' + res.status + ': ' + await res.text()
+        'Worker returned ' + res.status + ': ' + text
       );
     }
 
     return res;
   }
 
+  function showStatus(kind, headline, detailLines) {
+    const cls =
+      kind === 'progress'
+        ? 'dl-result-box progress'
+        : kind === 'ok'
+          ? 'dl-result-box ok'
+          : 'dl-result-box no';
+
+    let html =
+      '<div class="' + cls + '">' +
+        '<div class="headline">' +
+          escapeHtml(headline) +
+        '</div>';
+
+    if (detailLines && detailLines.length) {
+      html +=
+        '<div class="dl-details">' +
+          detailLines.map(escapeHtml).join('<br>') +
+        '</div>';
+    }
+
+    html += '</div>';
+
+    statusEl.innerHTML = html;
+  }
+
+  function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = String(str);
+    return div.innerHTML;
+  }
+
+  function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+
   async function dispatchWorkflow(type, version, mode) {
     await workerRequest('/dispatch', {
       method: 'POST',
       body: JSON.stringify({
-        type,
-        version,
-        mode
+        type: type,
+        version: version,
+        mode: mode
       })
     });
   }
+
 
   async function findRunByTime(sinceIso) {
     const res = await workerRequest(
@@ -1047,71 +1090,15 @@
     return await res.json();
   }
 
+
   async function getRun(runId) {
-    const res = await workerRequest('/run?id=' + runId);
+    const res = await workerRequest(
+      '/run?id=' + encodeURIComponent(runId)
+    );
+
     return await res.json();
   }
 
-  const buildType = document.getElementById('buildType');
-  const versionInput = document.getElementById('version');
-  const wrapCheckbox = document.getElementById('wrapCheckbox');
-  const goButton = document.getElementById('goButton');
-  const statusEl = document.getElementById('dl-status');
-
-  function apiHeaders(token) {
-    return {
-      'Accept': 'application/vnd.github+json',
-      'Authorization': 'Bearer ' + token,
-      'X-GitHub-Api-Version': '2022-11-28'
-    };
-  }
-
-  function showStatus(kind, headline, detailLines) {
-    const cls = kind === 'progress' ? 'dl-result-box progress' : kind === 'ok' ? 'dl-result-box ok' : 'dl-result-box no';
-    let html = '<div class="' + cls + '"><div class="headline">' + escapeHtml(headline) + '</div>';
-    if (detailLines && detailLines.length) {
-      html += '<div class="dl-details">' + detailLines.map(escapeHtml).join('<br>') + '</div>';
-    }
-    html += '</div>';
-    statusEl.innerHTML = html;
-  }
-
-  function escapeHtml(str) {
-    const div = document.createElement('div');
-    div.textContent = str;
-    return div.innerHTML;
-  }
-
-  function sleep(ms) {
-    return new Promise((resolve) => setTimeout(resolve, ms));
-  }
-
-  async function dispatchWorkflow(token, type, version, mode) {
-    const url = 'https://api.github.com/repos/' + REPO_OWNER + '/' + REPO_NAME + '/actions/workflows/' + WORKFLOW_FILE + '/dispatches';
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: Object.assign({ 'Content-Type': 'application/json' }, apiHeaders(token)),
-      body: JSON.stringify({
-        ref: 'main',
-        inputs: { build_type: type, version: version, mode: mode }
-      })
-    });
-    if (!res.ok) {
-      const text = await res.text();
-      throw new Error('Dispatch failed (' + res.status + '): ' + text);
-    }
-  }
-
-  async function findRunByTime(token, sinceIso) {
-    const url = 'https://api.github.com/repos/' + REPO_OWNER + '/' + REPO_NAME + '/actions/workflows/' + WORKFLOW_FILE + '/runs?event=workflow_dispatch&per_page=5';
-    const res = await fetch(url, { headers: apiHeaders(token) });
-    if (!res.ok) throw new Error('Could not list workflow runs (' + res.status + ')');
-    const data = await res.json();
-    const runs = (data.workflow_runs || []).filter((r) => new Date(r.created_at) >= new Date(sinceIso));
-    if (runs.length === 0) return null;
-    runs.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-    return runs[0];
-  }
 
   async function pollRun(runId) {
     while (true) {
@@ -1122,6 +1109,7 @@
       }
 
       showStatus('progress', 'Building…', [
+        'status: ' + run.status,
         'run: #' + run.run_number
       ]);
 
@@ -1131,219 +1119,180 @@
 
 
   async function downloadArtifact(runId, filename) {
-    const url = WORKER_URL + '?runId=' + runId + '&filename=' + encodeURIComponent(filename);
+    const url =
+      WORKER_URL +
+      '?runId=' +
+      encodeURIComponent(runId) +
+      '&filename=' +
+      encodeURIComponent(filename);
+
     const res = await fetch(url);
-    if (!res.ok) throw new Error('Worker returned ' + res.status + ': ' + await res.text());
+
+    if (!res.ok) {
+      throw new Error(
+        'Worker returned ' +
+        res.status +
+        ': ' +
+        await res.text()
+      );
+    }
+
     const blob = await res.blob();
+
     const objUrl = URL.createObjectURL(blob);
+
     const link = document.createElement('a');
     link.href = objUrl;
     link.download = filename;
+
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    setTimeout(() => URL.revokeObjectURL(objUrl), 4000);
+
+    setTimeout(() => {
+      URL.revokeObjectURL(objUrl);
+    }, 4000);
   }
 
 
   goButton.addEventListener('click', async () => {
-    const token = GITHUB_TOKEN;
     const type = buildType.value;
     const version = versionInput.value.trim();
-    const mode = wrapCheckbox.checked ? 'noupdate' : 'raw';
+    const mode = wrapCheckbox.checked
+      ? 'noupdate'
+      : 'raw';
 
     if (!version) {
-      showStatus('no', 'Missing version', ['Enter a version like v0.1.93']);
+      showStatus(
+        'no',
+        'Missing version',
+        ['Enter a version like v0.1.93']
+      );
       return;
     }
 
     goButton.disabled = true;
-    const sinceIso = new Date(Date.now() - 5000).toISOString();
+
+    /*
+     * Give the GitHub workflow a timestamp marker.
+     * The Worker uses this to find the newly-created run.
+     */
+    const sinceIso =
+      new Date(Date.now() - 5000).toISOString();
 
     try {
-      showStatus('progress', 'Dispatching build…', ['type: ' + type, 'version: ' + version, 'mode: ' + mode]);
-      await dispatchWorkflow(type, version, mode);
+      showStatus(
+        'progress',
+        'Dispatching build…',
+        [
+          'type: ' + type,
+          'version: ' + version,
+          'mode: ' + mode
+        ]
+      );
 
-      showStatus('progress', 'Waiting for run to appear…', []);
+      await dispatchWorkflow(
+        type,
+        version,
+        mode
+      );
+
+
+      showStatus(
+        'progress',
+        'Waiting for run to appear…',
+        []
+      );
+
       let run = null;
+
       for (let i = 0; i < 15; i++) {
         run = await findRunByTime(sinceIso);
-        if (run) break;
+
+        if (run) {
+          break;
+        }
+
         await sleep(2000);
       }
-      if (!run) throw new Error('Timed out waiting for the workflow run to start.');
 
-      const finishedRun = await pollRun(token, run.id);
+      if (!run) {
+        throw new Error(
+          'Timed out waiting for the workflow run to start.'
+        );
+      }
+
+
+      const finishedRun = await pollRun(run.id);
+
 
       if (finishedRun.conclusion !== 'success') {
-        showStatus('no', 'Build failed', ['conclusion: ' + finishedRun.conclusion, 'See the Actions tab on GitHub for logs.']);
-        goButton.disabled = false;
+        showStatus(
+          'no',
+          'Build failed',
+          [
+            'conclusion: ' +
+              finishedRun.conclusion,
+
+            'See the Actions tab on GitHub for logs.'
+          ]
+        );
+
         return;
       }
 
-      showStatus('progress', 'Downloading artifact…', []);
 
-      const label = type === 'studio' ? 'VortexStudio' : 'Vortex';
-      const zipName = label + '.' + version + (mode === 'noupdate' ? '.noupdate' : '') + '.zip';
+      showStatus(
+        'progress',
+        'Downloading artifact…',
+        []
+      );
 
-      await downloadArtifact(finishedRun.id, zipName);
 
-      showStatus('ok', 'Done', ['Downloaded as: ' + zipName, 'Unzip to get the .exe.']);
+      const label =
+        type === 'studio'
+          ? 'VortexStudio'
+          : 'Vortex';
 
-      showStatus('ok', 'Done', ['Downloaded as: ' + zipName, 'GitHub wraps artifacts in a zip — unzip to get the .exe.']);
+      const zipName =
+        label +
+        '.' +
+        version +
+        (mode === 'noupdate'
+          ? '.noupdate'
+          : '') +
+        '.zip';
+
+
+      await downloadArtifact(
+        finishedRun.id,
+        zipName
+      );
+
+
+      showStatus(
+        'ok',
+        'Done',
+        [
+          'Downloaded as: ' + zipName,
+          'GitHub wraps artifacts in a zip — unzip to get the .exe.'
+        ]
+      );
+
     } catch (err) {
-      showStatus('no', 'Error', [err.message]);
+      showStatus(
+        'no',
+        'Error',
+        [
+          err instanceof Error
+            ? err.message
+            : String(err)
+        ]
+      );
     } finally {
       goButton.disabled = false;
     }
   });
-})();
-</script>
-
-<script>
-(function () {
-  const fileInput = document.getElementById('fileInput');
-  const drop = document.getElementById('drop');
-  const filenameEl = document.getElementById('filename');
-  const progressEl = document.getElementById('vc-progress');
-  const resultEl = document.getElementById('vc-result');
-
-  const MARKER_NO_UPDATE = 'VORTEX_NO_UPDATE';
-  const MARKER_STUDIO_NO_UPDATE = 'VORTEX_STUDIO_NO_UPDATE';
-  const VERSION_REGEX = /v0\.[0-9]\.[0-9]{1,2}/g;
-
-  drop.addEventListener('click', () => fileInput.click());
-  drop.addEventListener('dragover', (e) => { e.preventDefault(); drop.classList.add('dragover'); });
-  drop.addEventListener('dragleave', () => drop.classList.remove('dragover'));
-  drop.addEventListener('drop', (e) => {
-    e.preventDefault();
-    drop.classList.remove('dragover');
-    if (e.dataTransfer.files.length) {
-      fileInput.files = e.dataTransfer.files;
-      handleFile(e.dataTransfer.files[0]);
-    }
-  });
-  fileInput.addEventListener('change', () => {
-    if (fileInput.files.length) handleFile(fileInput.files[0]);
-  });
-
-  function handleFile(file) {
-    filenameEl.textContent = file.name + '  (' + formatBytes(file.size) + ')';
-    resultEl.innerHTML = '';
-    progressEl.textContent = 'Reading file…';
-
-    const reader = new FileReader();
-    reader.onerror = () => {
-      progressEl.textContent = '';
-      showResult(false, 'Not a valid Vortex binary');
-    };
-    reader.onload = (e) => {
-      progressEl.textContent = 'Scanning…';
-      setTimeout(() => {
-        try {
-          const bytes = new Uint8Array(e.target.result);
-          analyze(bytes);
-        } catch (err) {
-          showResult(false, 'Error while scanning: ' + err.message);
-        }
-        progressEl.textContent = '';
-      }, 10);
-    };
-    reader.readAsArrayBuffer(file);
-  }
-
-  function extractStrings(bytes, minLen) {
-    minLen = minLen || 4;
-    const results = [];
-    let start = -1;
-    for (let i = 0; i < bytes.length; i++) {
-      const b = bytes[i];
-      const printable = b >= 32 && b <= 126;
-      if (printable) {
-        if (start === -1) start = i;
-      } else {
-        if (start !== -1) {
-          const len = i - start;
-          if (len >= minLen) results.push(bytesToAscii(bytes, start, i));
-          start = -1;
-        }
-      }
-    }
-    if (start !== -1 && bytes.length - start >= minLen) {
-      results.push(bytesToAscii(bytes, start, bytes.length));
-    }
-    return results;
-  }
-
-  function bytesToAscii(bytes, start, end) {
-    let s = '';
-    for (let i = start; i < end; i++) s += String.fromCharCode(bytes[i]);
-    return s;
-  }
-
-  function analyze(bytes) {
-    const strings = extractStrings(bytes, 4);
-    const joined = strings.join('\n');
-
-    const hasNoUpdate = joined.indexOf(MARKER_NO_UPDATE) !== -1;
-    const hasStudioNoUpdate = joined.indexOf(MARKER_STUDIO_NO_UPDATE) !== -1;
-
-    if (!hasNoUpdate && !hasStudioNoUpdate) {
-      showResult(false, 'Not a valid Vortex binary');
-      return;
-    }
-
-    const type = hasStudioNoUpdate ? 'studio' : 'client';
-
-    let versionMatch = null;
-    for (const s of strings) {
-      const m = s.match(VERSION_REGEX);
-      if (m && m.length) { versionMatch = m[0]; break; }
-    }
-
-    const hasNoUpdateWrapper = joined.indexOf('_vortex.exe') !== -1;
-
-    showResult(true, null, type, versionMatch, hasNoUpdateWrapper);
-  }
-
-  function showResult(found, message, type, version, hasNoUpdateWrapper) {
-    if (!found) {
-      resultEl.innerHTML =
-        '<div class="vc-result-box no">' +
-        '<div class="headline">' + escapeHtml(message) + '</div>' +
-        '</div>';
-      return;
-    }
-
-    const label = type === 'studio' ? 'Vortex Studio' : 'Vortex';
-    const headline = version ? (label + ' — ' + version) : (label + ' — version not found');
-    const boxClass = type === 'studio' ? 'vc-result-box studio' : 'vc-result-box ok';
-
-    resultEl.innerHTML =
-      '<div class="' + boxClass + '">' +
-      '<div class="headline">' + escapeHtml(headline) + '</div>' +
-      '<div class="vc-details">' +
-      '<div class="row"><span class="k">update guard</span><span class="v">' + (type === 'studio' ? 'VORTEX_STUDIO_NO_UPDATE' : 'VORTEX_NO_UPDATE') + '</span></div>' +
-      '<div class="row"><span class="k">type</span><span class="v">' + type + '</span></div>' +
-      (version ? '<div class="row"><span class="k">version string</span><span class="v">' + escapeHtml(version) + '</span></div>' : '') +
-      '<div class="row"><span class="k">noupdate wrapper</span><span class="v ' + (hasNoUpdateWrapper ? 'bool-true">TRUE' : 'bool-false">FALSE') + '</span></div>' +
-      '</div>' +
-      '</div>';
-  }
-
-  function escapeHtml(str) {
-    const div = document.createElement('div');
-    div.textContent = str;
-    return div.innerHTML;
-  }
-
-  function formatBytes(bytes) {
-    if (bytes === 0) return '0 B';
-    const k = 1024;
-    const sizes = ['B', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
-  }
 })();
 </script>
 </body>
