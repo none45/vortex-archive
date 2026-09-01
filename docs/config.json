@@ -1,6 +1,7 @@
 {
   "wideMode": {
     "/": true,
+    "/contributing/": true,
     "/archive-downloader/": false,
     "/version-checker/": false
   }
