@@ -1173,10 +1173,6 @@
 
     goButton.disabled = true;
 
-    /*
-     * Give the GitHub workflow a timestamp marker.
-     * The Worker uses this to find the newly-created run.
-     */
     const sinceIso =
       new Date(Date.now() - 5000).toISOString();
 
