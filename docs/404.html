@@ -71,19 +71,36 @@
     height: 100%;
     cursor: col-resize;
     z-index: 10;
+    transition: background 0.15s ease-out;
   }
   .sidebar-resize:hover,
   .sidebar-resize.dragging {
     background: var(--accent-dim);
   }
   .sidebar h4 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
     font-family: 'Sora', 'Inter', sans-serif;
     font-size: 0.72rem;
     font-weight: 500;
     text-transform: uppercase;
     letter-spacing: 0.06em;
     color: var(--muted);
-    margin: 0 0 10px 8px;
+    margin: 0 0 10px 0;
+  }
+  .sidebar h4::before {
+    content: "";
+    width: 10px;
+    height: 1px;
+    background: var(--muted);
+    flex-shrink: 0;
+  }
+  .sidebar h4::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: var(--muted);
   }
   .sidebar ul {
     list-style: none;
@@ -106,6 +123,7 @@
     background: var(--accent-dim);
     overflow: hidden;
     cursor: pointer;
+    transition: background 0.15s ease-out, color 0.15s ease-out;
   }
   .sidebar li a::before {
     content: "";
@@ -115,6 +133,7 @@
     bottom: 0;
     width: 5px;
     background: var(--accent);
+    transition: background 0.15s ease-out;
   }
   .sidebar li a.inactive {
     background: transparent;
@@ -126,6 +145,9 @@
   .sidebar li a.inactive:hover {
     background: var(--border-soft);
     color: var(--text);
+  }
+  .sidebar .readme-link::before {
+    content: none;
   }
   .sidebar .readme-link {
     display: block;
@@ -208,6 +230,9 @@
     flex: 1;
     padding: 56px 24px 40px;
   }
+  main.wide {
+    padding: 56px 56px 56px;
+  }
   .card {
     width: 100%;
     max-width: 700px;
@@ -229,11 +254,22 @@
     max-width: 52ch;
   }
 
-  .view { display: none; }
-  .view.active { display: block; }
+  .view {
+    display: none;
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  .view.active {
+    display: block;
+    animation: viewIn 0.22s ease-out forwards;
+  }
+  @keyframes viewIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
 
   .modal-overlay {
-    display: none;
+    display: flex;
     position: fixed;
     inset: 0;
     background: rgba(0,0,0,0.6);
@@ -241,8 +277,17 @@
     align-items: center;
     justify-content: center;
     padding: 24px;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.18s ease-out, visibility 0s linear 0.18s;
   }
-  .modal-overlay.open { display: flex; }
+  .modal-overlay.open {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transition: opacity 0.18s ease-out, visibility 0s linear 0s;
+  }
   .modal-box {
     background: var(--panel);
     border: 1px solid var(--border);
@@ -252,6 +297,11 @@
     max-height: 80vh;
     overflow-y: auto;
     padding: 24px;
+    transform: scale(0.97) translateY(4px);
+    transition: transform 0.18s ease-out;
+  }
+  .modal-overlay.open .modal-box {
+    transform: scale(1) translateY(0);
   }
   .modal-box.wide { max-width: 640px; }
   .modal-box h3 {
@@ -268,6 +318,7 @@
     cursor: pointer;
     line-height: 1;
     padding: 0;
+    transition: color 0.15s ease-out;
   }
   .modal-close:hover { color: var(--text); }
 
@@ -396,7 +447,7 @@
     padding: 10px 12px;
     border-radius: 6px;
     outline: none;
-    transition: border-color 0.15s;
+    transition: border-color 0.15s ease-out;
   }
   select:focus, input[type="text"]:focus {
     border-color: var(--accent);
@@ -425,6 +476,10 @@
     border: 1px solid var(--border-soft);
     border-radius: 6px;
     cursor: pointer;
+    transition: border-color 0.15s ease-out;
+  }
+  .checkbox-row:hover {
+    border-color: var(--border);
   }
   .checkbox-row input[type="checkbox"] {
     appearance: none;
@@ -439,13 +494,13 @@
     border: 1px solid var(--border);
     border-radius: 4px;
     position: relative;
-    transition: background 0.15s, border-color 0.15s;
+    transition: background 0.15s ease-out, border-color 0.15s ease-out;
   }
   .checkbox-row input[type="checkbox"]:checked {
     background: var(--accent);
     border-color: var(--accent);
   }
-  .checkbox-row input[type="checkbox"]:checked::after {
+  .checkbox-row input[type="checkbox"]::after {
     content: "";
     position: absolute;
     left: 5px;
@@ -454,7 +509,13 @@
     height: 8px;
     border: solid #16131f;
     border-width: 0 2px 2px 0;
-    transform: rotate(45deg);
+    transform: rotate(45deg) scale(0);
+    opacity: 0;
+    transition: transform 0.15s ease-out, opacity 0.1s ease-out;
+  }
+  .checkbox-row input[type="checkbox"]:checked::after {
+    transform: rotate(45deg) scale(1);
+    opacity: 1;
   }
   .checkbox-text {
     font-family: 'Sora', 'Inter', sans-serif;
@@ -479,9 +540,10 @@
     border-radius: 8px;
     cursor: pointer;
     margin-top: 4px;
-    transition: filter 0.15s, opacity 0.15s;
+    transition: filter 0.15s ease-out, opacity 0.15s ease-out, transform 0.1s ease-out;
   }
   button.action:hover { filter: brightness(1.08); }
+  button.action:active:not(:disabled) { transform: scale(0.98); }
   button.action:disabled {
     opacity: 0.5;
     cursor: not-allowed;
@@ -497,6 +559,7 @@
     border: 1px solid var(--border-soft);
     padding: 12px 20px 12px 25px;
     overflow: hidden;
+    animation: viewIn 0.2s ease-out;
   }
   .dl-result-box::before {
     content: "";
@@ -504,6 +567,7 @@
     top: 0; left: 0; bottom: 0;
     width: 5px;
     background: var(--border);
+    transition: background 0.15s ease-out;
   }
   .dl-result-box.progress::before { background: var(--studio); }
   .dl-result-box.ok::before { background: var(--good); }
@@ -583,6 +647,7 @@
     border: 1px solid var(--border-soft);
     padding: 12px 20px 12px 25px;
     overflow: hidden;
+    animation: viewIn 0.2s ease-out;
   }
   .vc-result-box::before {
     content: "";
@@ -663,7 +728,7 @@
   <div class="sidebar-resize" id="sidebarResize"></div>
 </div>
 
-<main>
+<main id="mainEl">
   <div class="card" id="mainCard">
 
     <div class="view" id="view-readme">
@@ -828,6 +893,7 @@
   const navDownloader = document.getElementById('navDownloader');
   const navChecker = document.getElementById('navChecker');
   const mainCard = document.getElementById('mainCard');
+  const mainEl = document.getElementById('mainEl');
 
   let readmeLoaded = false;
   let config = { wideMode: {} };
@@ -871,6 +937,7 @@
     });
 
     mainCard.classList.toggle('wide', !!(config.wideMode && config.wideMode[route]));
+    mainEl.classList.toggle('wide', !!(config.wideMode && config.wideMode[route]));
 
     navLinks.forEach((link) => link.classList.remove('active-nav'));
 

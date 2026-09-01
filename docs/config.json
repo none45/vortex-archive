@@ -1,7 +1,7 @@
 {
   "wideMode": {
     "/": true,
-    "/archive-downloader/": false,
-    "/version-checker/": false
+    "/archive-downloader/": true,
+    "/version-checker/": true
   }
 }
