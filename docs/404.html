@@ -752,7 +752,7 @@
             <option value="client">Client</option>
             <option value="studio">Studio</option>
           </select>
-          <input type="text" id="version" class="flex-version" placeholder="v0.3.4">
+          <input type="text" id="version" class="flex-version" placeholder="v0.1.93">
         </div>
       </div>
 
@@ -1008,8 +1008,49 @@
   const REPO_OWNER = 'none45';
   const REPO_NAME = 'vortex-archive';
   const WORKFLOW_FILE = 'build-wrapper.yml';
-  const GITHUB_TOKEN = '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';
   const WORKER_URL = 'https://vortex-artifact-proxy.none45.workers.dev';
+
+  async function workerRequest(path, options = {}) {
+    const res = await fetch(WORKER_URL + path, {
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...(options.headers || {})
+      }
+    });
+
+    if (!res.ok) {
+      throw new Error(
+        'Worker returned ' + res.status + ': ' + await res.text()
+      );
+    }
+
+    return res;
+  }
+
+  async function dispatchWorkflow(type, version, mode) {
+    await workerRequest('/dispatch', {
+      method: 'POST',
+      body: JSON.stringify({
+        type,
+        version,
+        mode
+      })
+    });
+  }
+
+  async function findRunByTime(sinceIso) {
+    const res = await workerRequest(
+      '/runs?since=' + encodeURIComponent(sinceIso)
+    );
+
+    return await res.json();
+  }
+
+  async function getRun(runId) {
+    const res = await workerRequest('/run?id=' + runId);
+    return await res.json();
+  }
 
   const buildType = document.getElementById('buildType');
   const versionInput = document.getElementById('version');
@@ -1072,18 +1113,18 @@
     return runs[0];
   }
 
-  async function pollRun(token, runId) {
+  async function pollRun(runId) {
     while (true) {
-      const url = 'https://api.github.com/repos/' + REPO_OWNER + '/' + REPO_NAME + '/actions/runs/' + runId;
-      const res = await fetch(url, { headers: apiHeaders(token) });
-      if (!res.ok) throw new Error('Could not check run status (' + res.status + ')');
-      const run = await res.json();
+      const run = await getRun(runId);
 
       if (run.status === 'completed') {
         return run;
       }
 
-      showStatus('progress', 'Building…', ['status: ' + run.status, 'run: #' + run.run_number]);
+      showStatus('progress', 'Building…', [
+        'run: #' + run.run_number
+      ]);
+
       await sleep(4000);
     }
   }
@@ -1112,7 +1153,7 @@
     const mode = wrapCheckbox.checked ? 'noupdate' : 'raw';
 
     if (!version) {
-      showStatus('no', 'Missing version', ['Enter a version like v0.3.4.']);
+      showStatus('no', 'Missing version', ['Enter a version like v0.1.93']);
       return;
     }
 
@@ -1121,12 +1162,12 @@
 
     try {
       showStatus('progress', 'Dispatching build…', ['type: ' + type, 'version: ' + version, 'mode: ' + mode]);
-      await dispatchWorkflow(token, type, version, mode);
+      await dispatchWorkflow(type, version, mode);
 
       showStatus('progress', 'Waiting for run to appear…', []);
       let run = null;
       for (let i = 0; i < 15; i++) {
-        run = await findRunByTime(token, sinceIso);
+        run = await findRunByTime(sinceIso);
         if (run) break;
         await sleep(2000);
       }
