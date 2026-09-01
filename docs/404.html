@@ -8,6 +8,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&family=Sora:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <style>
   :root {
     --bg: #0d1117;
@@ -1024,6 +1025,45 @@
     'og'
   ].join('');
 
+  const VALID_VERSIONS = {
+    client: [
+      'v0.1.0',
+      'v0.1.5',
+      'v0.1.93',
+      'v0.2.5',
+      'v0.2.8',
+      'v0.2.12',
+      'v0.2.13',
+      'v0.2.15',
+      'v0.2.16',
+      'v0.2.18',
+      'v0.2.19',
+      'v0.2.20',
+      'v0.2.21',
+      'v0.2.22',
+      'v0.2.23',
+      'v0.2.24',
+      'v0.2.25',
+      'v0.2.26',
+      'v0.2.27',
+      'v0.3.0',
+      'v0.4.1',
+      'v0.4.2'
+    ],
+    studio: [
+      'v0.1.0',
+      'v0.1.1',
+      'v0.1.2',
+      'v0.1.3',
+      'v0.2.0',
+      'v0.2.1',
+      'v0.3.0',
+      'v0.3.1',
+      'v0.3.3',
+      'v0.3.4'
+    ]
+  };
+
   const buildType = document.getElementById('buildType');
   const versionInput = document.getElementById('version');
   const wrapCheckbox = document.getElementById('wrapCheckbox');
@@ -1132,9 +1172,19 @@
   }
 
   async function downloadArtifactZip(token, artifactId) {
-    const url = 'https://api.github.com/repos/' + REPO_OWNER + '/' + REPO_NAME + '/actions/artifacts/' + artifactId + '/zip';
-    const res = await fetch(url, { headers: apiHeaders(token) });
-    if (!res.ok) throw new Error('Could not download artifact (' + res.status + ')');
+    const url =
+      'https://api.github.com/repos/' + REPO_OWNER + '/' + REPO_NAME +
+      '/actions/artifacts/' + artifactId + '/zip';
+
+    const res = await fetch(url, {
+      method: 'GET',
+      headers: apiHeaders(token)
+    });
+
+    if (!res.ok) {
+      throw new Error('Could not download artifact (' + res.status + ')');
+    }
+
     return await res.blob();
   }
 
@@ -1157,6 +1207,14 @@
 
     if (!version) {
       showStatus('no', 'Missing version', ['Enter a version like v0.1.93']);
+      return;
+    }
+
+    if (!VALID_VERSIONS[type].includes(version)) {
+      showStatus('no', 'Invalid version', [
+        version + ' is not available for ' + type + '.',
+        'Use the "Available versions" list.'
+      ]);
       return;
     }
 
@@ -1209,12 +1267,36 @@
 
       showStatus('progress', 'Fetching artifact…', []);
       const artifact = await getArtifact(token, finishedRun.id);
-      const blob = await downloadArtifactZip(token, artifact.id);
+      const zipBlob = await downloadArtifactZip(token, artifact.id);
 
       const label = type === 'studio' ? 'VortexStudio' : 'Vortex';
-      const zipName = label + '.' + version + (mode === 'noupdate' ? '.noupdate' : '') + '.zip';
+      const exeName =
+        label + '.' + version +
+        (mode === 'noupdate' ? '.noupdate' : '') +
+        '.exe';
 
-      triggerBrowserDownload(blob, zipName);
+      const zip = await JSZip.loadAsync(zipBlob);
+
+      const exeFile = Object.values(zip.files).find(file =>
+        !file.dir && file.name.toLowerCase().endsWith('.exe')
+      );
+
+      if (!exeFile) {
+        throw new Error('No .exe found in the artifact.');
+      }
+
+      const exeBlob = await exeFile.async('blob');
+
+      const link = document.createElement('a');
+      const objUrl = URL.createObjectURL(exeBlob);
+
+      link.href = objUrl;
+      link.download = exeName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      setTimeout(() => URL.revokeObjectURL(objUrl), 4000);
 
       showStatus('ok', 'Done', ['Downloaded as: ' + zipName, 'GitHub wraps artifacts in a zip — unzip to get the .exe.']);
     } catch (err) {
