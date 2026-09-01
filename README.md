@@ -1,75 +1,27 @@
 # none's vortex archive
 
-## How to download
+An archive of Vortex Client and Vortex Studio builds, hosted with permission from the owner. This exists to preserve older versions that are no longer easy to find.
 
-You do **not** need to download any files. Simply open your terminal inside the folder where you want the file to be saved, and run the command below.
+## How to use
 
-*Note: Change the version at the end of any command to fetch a different archived version.*<br>
-*Replace noupdate with raw if you want the original version without the no-update wrapper.*
+Head over to the tools instead of grabbing raw files:
 
----
+- **[Archive Downloader](https://none45.github.io/vortex-archive/archive-downloader/)** - pick a build (Client/Studio) and version, and download it directly.
+- **[Version Checker](https://none45.github.io/vortex-archive/version-checker/)** - drop in a binary you already have to confirm which build and version it is. It runs client-side in your browser, nothing is uploaded.
 
-### Windows:
-Open **PowerShell** and run the command for the version you want:
+Both tools are also linked in the sidebar.
 
-#### Client:
-```powershell
-& ([scriptblock]::Create((irm https://raw.githubusercontent.com/none45/vortex-archive/main/assemble.ps1))) client v0.1.93 noupdate
-```
+## Got something we don't have?
 
-#### Studio:
-```powershell
-& ([scriptblock]::Create((irm https://raw.githubusercontent.com/none45/vortex-archive/main/assemble.ps1))) studio v0.1.1 noupdate
-```
+Not sure if your copy is already in the archive? Run it through the Version Checker and take a look at the Archive Downloader's version list - if it's not there, check out [CONTRIBUTING.md](CONTRIBUTING.md) for how to send it over.
 
----
+**Tip:** if the updater replaced an older version on your machine, that old copy sometimes still sits in `%TEMP%` on Windows rather than being fully gone, worth a look if you want to dig up something older.
 
-### Linux / Mac:
-Open your **Terminal** and run the command for the version you want:
+## Notes
 
-#### Client:
-```bash
-curl -sSL https://raw.githubusercontent.com/none45/vortex-archive/main/assemble.sh | bash -s -- client v0.1.93 noupdate
-```
+- Versions are organized by build type (Client / Studio) and version string.
+- If you're not sure what version a file is, run it through the Version Checker above before asking.
 
-#### Studio:
-```bash
-curl -sSL https://raw.githubusercontent.com/none45/vortex-archive/main/assemble.sh | bash -s -- studio v0.1.1 noupdate
-```
+## Disclaimer
 
-## List of current versions:
-
-### Client
-- v0.1.0
-- v0.1.5
-- v0.1.93
-- v0.2.8
-- v0.2.12
-- v0.2.13
-- v0.2.15
-- v0.2.16
-- v0.2.18
-- v0.2.19
-- v0.2.20
-- v0.2.21
-- v0.2.22
-- v0.2.23
-- v0.2.24
-- v0.2.25
-- v0.2.26
-- v0.2.27
-- v0.3.0
-- v0.4.1
-- v0.4.2
-
-### Studio
-- v0.1.0
-- v0.1.1
-- v0.1.2
-- v0.1.3
-- v0.2.0
-- v0.2.1
-- v0.3.0
-- v0.3.1
-- v0.3.3
-- v0.3.4
+This is an unofficial archive. All trademarks and the underlying software belong to TheHaloDeveloper.
