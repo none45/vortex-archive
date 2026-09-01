@@ -13,9 +13,9 @@ Both tools are also linked in the website's sidebar.
 
 ## Got something we don't have?
 
-Not sure if your copy is already in the archive? Run it through the Version Checker and take a look at the Archive Downloader's version list - if it's not there, check out [CONTRIBUTING.md](CONTRIBUTING.md) for how to send it over.
+Not sure if your copy is already in the archive? Run it through the Version Checker and take a look at the Archive Downloader's version list - if it's not there, check out [CONTRIBUTING.md](contributing) for how to send it over.
 
-**Tip:** if the updater replaced an older version on your machine, that old copy sometimes still sits in `%TEMP%` on Windows rather than being fully gone, worth a look if you want to dig up something older.
+**Tip:** if the updater replaced an older version on your machine, an old copy sometimes still sits in `%TEMP%` on Windows rather than being fully gone, worth a look if you want to dig up something older.
 
 ## Notes
 
