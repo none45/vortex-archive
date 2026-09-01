@@ -752,7 +752,7 @@
             <option value="client">Client</option>
             <option value="studio">Studio</option>
           </select>
-          <input type="text" id="version" class="flex-version" placeholder="v0.3.4">
+          <input type="text" id="version" class="flex-version" placeholder="v0.1.93">
         </div>
       </div>
 
@@ -1136,7 +1136,7 @@
     const mode = wrapCheckbox.checked ? 'noupdate' : 'raw';
 
     if (!version) {
-      showStatus('no', 'Missing version', ['Enter a version like v0.3.4.']);
+      showStatus('no', 'Missing version', ['Enter a version like v0.1.93']);
       return;
     }
 
@@ -1149,7 +1149,7 @@
 
       showStatus('progress', 'Waiting for run to appear…', []);
       let run = null;
-      for (let i = 0; i < 15; i++) {
+      for (let i = 0; i < 60; i++) {
         run = await findRunByTime(token, sinceIso);
         if (run) break;
         await sleep(2000);
