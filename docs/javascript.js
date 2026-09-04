@@ -1025,7 +1025,7 @@
     : kind === 'ok'
     ? 'var(--good)'
     : kind === 'neutral'
-    ? 'var(--neutral)'
+    ? 'var(--muted)'
     : 'var(--muted)';
   }
 
@@ -1920,7 +1920,7 @@
     const latest = deployments[0];
 
     versionEl.textContent =
-      'v0.2.' + latest.run_number;
+      'v' + latest.run_number;
 
   } catch (err) {
     console.error('Failed to load site version:', err);
