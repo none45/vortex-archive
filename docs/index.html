@@ -9,8 +9,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&family=Sora:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js"></script>
-<link rel="stylesheet" href="/vortex-archive/style.css">
-<script src="/vortex-archive/javascript.js" defer></script>
+<link rel="stylesheet" href="/vortex-archive/style.css?v=20260905-merger-1">
+<script src="/vortex-archive/javascript.js?v=20260905-merger-1" defer></script>
 </head>
 <body>
 
@@ -21,7 +21,7 @@
 
       <span class="website-text">
         <span class="website-name">none's vortex tools</span>
-        <span class="site-version" id="siteVersion">v?</span>
+        <span class="site-version" id="siteVersion">v0.2.?</span>
       </span>
     </a>
 
@@ -145,7 +145,7 @@
           <label class="field-label" style="margin-bottom:0;">File</label>
           <div style="display:flex; gap:8px; flex-wrap:wrap;">
             <button type="button" class="help-btn" id="vrtxLoadSampleBtn">Load sample</button>
-            <button type="button" class="help-btn" id="vrtxFormatBtn">Format JSON</button>
+            <button type="button" class="help-btn" id="vrtxFormatBtn">Prettify JSON</button>
             <button type="button" class="help-btn" id="vrtxDownloadJsonBtn">Download JSON</button>
             <button type="button" class="help-btn" id="vrtxDownloadVrtxBtn">Download .vrtx</button>
           </div>
@@ -178,13 +178,24 @@
 
     <div class="view" id="view-vrtx-merger">
       <div class="merger-layout">
+        <div class="merger-intro">
+          <h1>.VRTX Merger</h1>
+          <p class="sub">Combine multiple Vortex projects into one file. Each project's objects remain in their original service and parent hierarchy.</p>
+        </div>
+
+        <div class="merger-output-card">
+          <div class="field-label">Output file</div>
+          <div class="merger-output-name" id="vrtxMergerOutputName">merged-project.vrtx</div>
+          <button class="action" id="vrtxMergerDownloadBtn" type="button" disabled>Download merged .vrtx</button>
+        </div>
+
         <div class="merger-files-panel">
           <div class="merger-panel-heading">
             <div>
               <label class="field-label">Source files</label>
               <div class="merger-count" id="vrtxMergerCount">No files selected</div>
             </div>
-            <button type="button" class="help-btn" id="vrtxMergerClearBtn">Clear all</button>
+            <button type="button" class="help-btn" id="vrtxMergerClearBtn" disabled>Clear all</button>
           </div>
 
           <label class="drop merger-drop" id="vrtxMergerDrop" for="vrtxMergerFileInput">
@@ -198,18 +209,7 @@
           <div class="vc-progress" id="vrtxMergerStatus"></div>
         </div>
 
-        <aside class="merger-side-panel">
-          <div class="merger-output-card">
-            <div class="field-label">Output file</div>
-            <div class="merger-output-name" id="vrtxMergerOutputName">merged-project.vrtx</div>
-            <button class="action" id="vrtxMergerDownloadBtn" type="button" disabled>Download merged .vrtx</button>
-          </div>
-          <div class="merger-intro">
-            <h1>.VRTX Merger</h1>
-            <p class="sub">Combine multiple Vortex projects into one file. Each project’s objects are reparented under the first project workspace so the merged hierarchy stays intact.</p>
-            <p class="merger-note">The merge happens locally in your browser. The first file supplies the project settings and lighting.</p>
-          </div>
-        </aside>
+        <p class="merger-note">The merge happens locally in your browser. The first file supplies project settings and lighting.</p>
       </div>
     </div>
 

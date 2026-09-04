@@ -4,6 +4,7 @@
     "/contributing/": true,
     "/archive-downloader/": false,
     "/version-checker/": false,
-    "/vrtx-editor/": false
+    "/vrtx-editor/": true,
+    "/vrtx-merger/": true
   }
 }

@@ -36,11 +36,11 @@
 
   const views = {
     '/': document.getElementById('view-readme'),
-    '/contributing/': document.getElementById('view-contributing'),
-    '/archive-downloader/': document.getElementById('view-downloader'),
-    '/version-checker/': document.getElementById('view-checker'),
-    '/vrtx-editor/': document.getElementById('view-vrtx-editor'),
-    '/vrtx-merger/': document.getElementById('view-vrtx-merger')
+ '/contributing/': document.getElementById('view-contributing'),
+ '/archive-downloader/': document.getElementById('view-downloader'),
+ '/version-checker/': document.getElementById('view-checker'),
+ '/vrtx-editor/': document.getElementById('view-vrtx-editor'),
+ '/vrtx-merger/': document.getElementById('view-vrtx-merger')
   };
   const navLinks = document.querySelectorAll('[data-route]');
   const readmeNavLink = document.getElementById('readmeNavLink');
@@ -72,7 +72,7 @@
     if (contributingLoaded) return;
 
     const contributingContent =
-      document.getElementById('contributingContent');
+    document.getElementById('contributingContent');
 
     try {
       const res = await fetch(
@@ -90,17 +90,17 @@
       const text = await res.text();
 
       contributingContent.innerHTML =
-        marked.parse(text);
+      marked.parse(text);
 
       contributingLoaded = true;
 
     } catch (err) {
       contributingContent.innerHTML =
-        '<div class="markdown-status">' +
-          'Could not load CONTRIBUTING.md (' +
-          err.message +
-          ')' +
-        '</div>';
+      '<div class="markdown-status">' +
+      'Could not load CONTRIBUTING.md (' +
+      err.message +
+      ')' +
+      '</div>';
     }
   }
 
@@ -132,15 +132,14 @@
       views[key].classList.toggle('active', key === route);
     });
 
-    const forceWide = route === '/vrtx-editor/' || route === '/vrtx-merger/';
     mainCard.classList.toggle(
       'wide',
-      forceWide || !!(config.wideMode && config.wideMode[route])
+      !!(config.wideMode && config.wideMode[route])
     );
 
     mainEl.classList.toggle(
       'wide',
-      forceWide || !!(config.wideMode && config.wideMode[route])
+      !!(config.wideMode && config.wideMode[route])
     );
 
     navLinks.forEach((link) => {
@@ -180,11 +179,11 @@
 
     const titles = {
       '/': 'none\'s vortex tools',
-      '/contributing/': 'none\'s vortex tools',
-      '/archive-downloader/': 'none\'s archive downloader',
-      '/version-checker/': 'none\'s version checker',
-      '/vrtx-editor/': 'none\'s .vrtx editor',
-      '/vrtx-merger/': 'none\'s .vrtx merger'
+ '/contributing/': 'none\'s vortex tools',
+ '/archive-downloader/': 'none\'s archive downloader',
+ '/version-checker/': 'none\'s version checker',
+ '/vrtx-editor/': 'none\'s .vrtx editor',
+ '/vrtx-merger/': 'none\'s .vrtx merger'
     };
 
     document.title = titles[route] || titles['/'];
@@ -227,7 +226,7 @@
 
 (function () {
   const API_URL =
-    'https://api.github.com/repos/none45/vortex-archive/releases';
+  'https://api.github.com/repos/none45/vortex-archive/releases';
 
   const clientList = document.getElementById('clientVersions');
   const studioList = document.getElementById('studioVersions');
@@ -240,7 +239,7 @@
   };
 
   const topbarVersionsBtn =
-    document.getElementById('topbarVersionsBtn');
+  document.getElementById('topbarVersionsBtn');
 
   topbarVersionsBtn.addEventListener('click', () => {
     versionModal.classList.add('open');
@@ -344,10 +343,10 @@
       }
 
       window.availableVersions.client =
-        [...client].sort(compareVersions);
+      [...client].sort(compareVersions);
 
       window.availableVersions.studio =
-        [...studio].sort(compareVersions);
+      [...studio].sort(compareVersions);
 
       renderList(
         clientList,
@@ -363,10 +362,10 @@
       console.error('Failed to load versions:', err);
 
       clientList.innerHTML =
-        '<li>Failed to load versions</li>';
+      '<li>Failed to load versions</li>';
 
       studioList.innerHTML =
-        '<li>Failed to load versions</li>';
+      '<li>Failed to load versions</li>';
     }
   }
 
@@ -375,286 +374,286 @@
 
 (function () {
   const WORKER_URL =
-    'https://vortex-artifact-proxy.none45556.workers.dev';
+  'https://vortex-artifact-proxy.none45556.workers.dev';
 
-  const buildType = document.getElementById('buildType');
-  const versionInput = document.getElementById('version');
-  const wrapCheckbox = document.getElementById('wrapCheckbox');
-  const goButton = document.getElementById('goButton');
-  const statusEl = document.getElementById('dl-status');
+      const buildType = document.getElementById('buildType');
+      const versionInput = document.getElementById('version');
+      const wrapCheckbox = document.getElementById('wrapCheckbox');
+      const goButton = document.getElementById('goButton');
+      const statusEl = document.getElementById('dl-status');
 
-  async function workerRequest(path, options = {}) {
-    const res = await fetch(WORKER_URL + path, {
-      ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        ...(options.headers || {})
-      }
-    });
+      async function workerRequest(path, options = {}) {
+        const res = await fetch(WORKER_URL + path, {
+          ...options,
+          headers: {
+            'Content-Type': 'application/json',
+            ...(options.headers || {})
+          }
+        });
 
-    if (!res.ok) {
-      const text = await res.text();
-      throw new Error(
-        'Worker returned ' + res.status + ': ' + text
-      );
-    }
-
-    return res;
-  }
-
-  function showStatus(kind, headline, detailLines) {
-    const cls =
-      kind === 'progress'
-        ? 'dl-result-box progress'
-        : kind === 'ok'
-          ? 'dl-result-box ok'
-          : 'dl-result-box no';
-
-    let html =
-      '<div class="' + cls + '">' +
-        '<div class="headline">' +
-          escapeHtml(headline) +
-        '</div>';
-
-    if (detailLines && detailLines.length) {
-      html +=
-        '<div class="dl-details">' +
-          detailLines.map(escapeHtml).join('<br>') +
-        '</div>';
-    }
-
-    html += '</div>';
-
-    statusEl.innerHTML = html;
-  }
-
-  function escapeHtml(str) {
-    const div = document.createElement('div');
-    div.textContent = String(str);
-    return div.innerHTML;
-  }
-
-  function sleep(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
-  }
-
-
-  async function dispatchWorkflow(type, version, mode) {
-    await workerRequest('/dispatch', {
-      method: 'POST',
-      body: JSON.stringify({
-        type: type,
-        version: version,
-        mode: mode
-      })
-    });
-  }
-
-
-  async function findRunByTime(sinceIso) {
-    const res = await workerRequest(
-      '/runs?since=' + encodeURIComponent(sinceIso)
-    );
-
-    return await res.json();
-  }
-
-
-  async function getRun(runId) {
-    const res = await workerRequest(
-      '/run?id=' + encodeURIComponent(runId)
-    );
-
-    return await res.json();
-  }
-
-
-  async function pollRun(runId) {
-    while (true) {
-      const run = await getRun(runId);
-
-      if (run.status === 'completed') {
-        return run;
-      }
-
-      showStatus('progress', 'Building…', [
-        'status: ' + run.status,
-        'run: #' + run.run_number
-      ]);
-
-      await sleep(4000);
-    }
-  }
-
-  async function downloadArtifact(runId, filename) {
-    const url =
-      WORKER_URL +
-      '?runId=' +
-      encodeURIComponent(runId) +
-      '&filename=' +
-      encodeURIComponent(filename);
-
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = filename;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  }
-
-  goButton.addEventListener('click', async () => {
-    const type = buildType.value;
-    const version = versionInput.value.trim();
-    const mode = wrapCheckbox.checked
-      ? 'noupdate'
-      : 'raw';
-
-    if (!version) {
-      showStatus(
-        'no',
-        'Missing version',
-        ['Enter a version like v0.1.93']
-      );
-      return;
-    }
-
-    const normalizedVersion =
-      'v' + version.replace(/^v/i, '');
-
-    if (
-      !window.availableVersions[type].includes(normalizedVersion)
-    ) {
-      showStatus(
-        'no',
-        'Version not found',
-        [
-          normalizedVersion +
-            ' is not available for ' +
-            (type === 'studio' ? 'Studio' : 'Client') +
-            '.',
-          'Click "Available versions" to see valid versions.'
-        ]
-      );
-      return;
-    }
-
-    goButton.disabled = true;
-
-    const sinceIso =
-      new Date(Date.now() - 5000).toISOString();
-
-    try {
-      showStatus(
-        'progress',
-        'Dispatching build…',
-        [
-          'type: ' + type,
-          'version: ' + version,
-          'mode: ' + mode
-        ]
-      );
-
-      await dispatchWorkflow(
-        type,
-        version,
-        mode
-      );
-
-
-      showStatus(
-        'progress',
-        'Waiting for run to appear…',
-        []
-      );
-
-      let run = null;
-
-      for (let i = 0; i < 15; i++) {
-        run = await findRunByTime(sinceIso);
-
-        if (run) {
-          break;
+        if (!res.ok) {
+          const text = await res.text();
+          throw new Error(
+            'Worker returned ' + res.status + ': ' + text
+          );
         }
 
-        await sleep(2000);
+        return res;
       }
 
-      if (!run) {
-        throw new Error(
-          'Timed out waiting for the workflow run to start.'
+      function showStatus(kind, headline, detailLines) {
+        const cls =
+        kind === 'progress'
+        ? 'dl-result-box progress'
+        : kind === 'ok'
+        ? 'dl-result-box ok'
+        : 'dl-result-box no';
+
+        let html =
+        '<div class="' + cls + '">' +
+        '<div class="headline">' +
+        escapeHtml(headline) +
+        '</div>';
+
+        if (detailLines && detailLines.length) {
+          html +=
+          '<div class="dl-details">' +
+          detailLines.map(escapeHtml).join('<br>') +
+          '</div>';
+        }
+
+        html += '</div>';
+
+        statusEl.innerHTML = html;
+      }
+
+      function escapeHtml(str) {
+        const div = document.createElement('div');
+        div.textContent = String(str);
+        return div.innerHTML;
+      }
+
+      function sleep(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+      }
+
+
+      async function dispatchWorkflow(type, version, mode) {
+        await workerRequest('/dispatch', {
+          method: 'POST',
+          body: JSON.stringify({
+            type: type,
+            version: version,
+            mode: mode
+          })
+        });
+      }
+
+
+      async function findRunByTime(sinceIso) {
+        const res = await workerRequest(
+          '/runs?since=' + encodeURIComponent(sinceIso)
         );
+
+        return await res.json();
       }
 
 
-      const finishedRun = await pollRun(run.id);
-
-
-      if (finishedRun.conclusion !== 'success') {
-        showStatus(
-          'no',
-          'Build failed',
-          [
-            'conclusion: ' +
-              finishedRun.conclusion,
-
-            'See the Actions tab on GitHub for logs.'
-          ]
+      async function getRun(runId) {
+        const res = await workerRequest(
+          '/run?id=' + encodeURIComponent(runId)
         );
 
-        return;
+        return await res.json();
       }
 
 
-      showStatus(
-        'progress',
-        'Downloading artifact…',
-        []
-      );
+      async function pollRun(runId) {
+        while (true) {
+          const run = await getRun(runId);
+
+          if (run.status === 'completed') {
+            return run;
+          }
+
+          showStatus('progress', 'Building…', [
+            'status: ' + run.status,
+            'run: #' + run.run_number
+          ]);
+
+          await sleep(4000);
+        }
+      }
+
+      async function downloadArtifact(runId, filename) {
+        const url =
+        WORKER_URL +
+        '?runId=' +
+        encodeURIComponent(runId) +
+        '&filename=' +
+        encodeURIComponent(filename);
+
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
+
+      goButton.addEventListener('click', async () => {
+        const type = buildType.value;
+        const version = versionInput.value.trim();
+        const mode = wrapCheckbox.checked
+        ? 'noupdate'
+        : 'raw';
+
+        if (!version) {
+          showStatus(
+            'no',
+            'Missing version',
+            ['Enter a version like v0.1.93']
+          );
+          return;
+        }
+
+        const normalizedVersion =
+        'v' + version.replace(/^v/i, '');
+
+        if (
+          !window.availableVersions[type].includes(normalizedVersion)
+        ) {
+          showStatus(
+            'no',
+            'Version not found',
+            [
+              normalizedVersion +
+              ' is not available for ' +
+              (type === 'studio' ? 'Studio' : 'Client') +
+              '.',
+              'Click "Available versions" to see valid versions.'
+            ]
+          );
+          return;
+        }
+
+        goButton.disabled = true;
+
+        const sinceIso =
+        new Date(Date.now() - 5000).toISOString();
+
+        try {
+          showStatus(
+            'progress',
+            'Dispatching build…',
+            [
+              'type: ' + type,
+              'version: ' + version,
+              'mode: ' + mode
+            ]
+          );
+
+          await dispatchWorkflow(
+            type,
+            version,
+            mode
+          );
 
 
-      const label =
-        type === 'studio'
+          showStatus(
+            'progress',
+            'Waiting for run to appear…',
+            []
+          );
+
+          let run = null;
+
+          for (let i = 0; i < 15; i++) {
+            run = await findRunByTime(sinceIso);
+
+            if (run) {
+              break;
+            }
+
+            await sleep(2000);
+          }
+
+          if (!run) {
+            throw new Error(
+              'Timed out waiting for the workflow run to start.'
+            );
+          }
+
+
+          const finishedRun = await pollRun(run.id);
+
+
+          if (finishedRun.conclusion !== 'success') {
+            showStatus(
+              'no',
+              'Build failed',
+              [
+                'conclusion: ' +
+                finishedRun.conclusion,
+
+                'See the Actions tab on GitHub for logs.'
+              ]
+            );
+
+            return;
+          }
+
+
+          showStatus(
+            'progress',
+            'Downloading artifact…',
+            []
+          );
+
+
+          const label =
+          type === 'studio'
           ? 'VortexStudio'
           : 'Vortex';
 
-      const zipName =
-        label +
-        '.' +
-        version +
-        (mode === 'noupdate'
+          const zipName =
+          label +
+          '.' +
+          version +
+          (mode === 'noupdate'
           ? '.noupdate'
           : '') +
-        '.exe';
+          '.exe';
 
 
-      await downloadArtifact(
-        finishedRun.id,
-        zipName
-      );
+          await downloadArtifact(
+            finishedRun.id,
+            zipName
+          );
 
 
-      showStatus(
-        'ok',
-        'Done',
-        [
-          'Downloaded as: ' + zipName
-        ]
-      );
+          showStatus(
+            'ok',
+            'Done',
+            [
+              'Downloaded as: ' + zipName
+            ]
+          );
 
-    } catch (err) {
-      showStatus(
-        'no',
-        'Error',
-        [
-          err instanceof Error
-            ? err.message
-            : String(err)
-        ]
-      );
-    } finally {
-      goButton.disabled = false;
-    }
-  });
+        } catch (err) {
+          showStatus(
+            'no',
+            'Error',
+            [
+              err instanceof Error
+              ? err.message
+              : String(err)
+            ]
+          );
+        } finally {
+          goButton.disabled = false;
+        }
+      });
 })();
 
 (function () {
@@ -699,7 +698,7 @@
 
   function handleFile(file) {
     filenameEl.textContent =
-      file.name + '  (' + formatBytes(file.size) + ')';
+    file.name + '  (' + formatBytes(file.size) + ')';
 
     resultEl.innerHTML = '';
     progressEl.textContent = 'Reading file…';
@@ -802,13 +801,13 @@
 
   function analyze(bytes) {
     const hasNoUpdate =
-      containsAscii(bytes, MARKER_NO_UPDATE);
+    containsAscii(bytes, MARKER_NO_UPDATE);
 
     const hasStudioNoUpdate =
-      containsAscii(bytes, MARKER_STUDIO_NO_UPDATE);
+    containsAscii(bytes, MARKER_STUDIO_NO_UPDATE);
 
     const hasWrapper =
-      containsAscii(bytes, MARKER_NOUPDATE_EXE);
+    containsAscii(bytes, MARKER_NOUPDATE_EXE);
 
     if (!hasNoUpdate && !hasStudioNoUpdate) {
       showResult(false, 'Not a valid Vortex binary');
@@ -816,9 +815,9 @@
     }
 
     const type =
-      hasStudioNoUpdate
-        ? 'studio'
-        : 'client';
+    hasStudioNoUpdate
+    ? 'studio'
+    : 'client';
 
     const strings = extractStrings(bytes, 4);
 
@@ -851,72 +850,72 @@
   ) {
     if (!found) {
       resultEl.innerHTML =
-        '<div class="vc-result-box no">' +
-          '<div class="headline">' +
-            escapeHtml(message) +
-          '</div>' +
-        '</div>';
+      '<div class="vc-result-box no">' +
+      '<div class="headline">' +
+      escapeHtml(message) +
+      '</div>' +
+      '</div>';
 
-      return;
+    return;
     }
 
     const label =
-      type === 'studio'
-        ? 'Vortex Studio'
-        : 'Vortex';
+    type === 'studio'
+    ? 'Vortex Studio'
+    : 'Vortex';
 
     const headline =
-      version
-        ? label + ' — ' + version
-        : label + ' — version not found';
+    version
+    ? label + ' — ' + version
+    : label + ' — version not found';
 
     resultEl.innerHTML =
-      '<div class="vc-result-box ok">' +
-        '<div class="headline">' +
-          escapeHtml(headline) +
-        '</div>' +
-        '<div class="vc-details">' +
+    '<div class="vc-result-box ok">' +
+    '<div class="headline">' +
+    escapeHtml(headline) +
+    '</div>' +
+    '<div class="vc-details">' +
 
-          '<div class="row">' +
-            '<span class="k">type</span>' +
-            '<span class="v">' +
-              type +
-            '</span>' +
-          '</div>' +
+    '<div class="row">' +
+    '<span class="k">type</span>' +
+    '<span class="v">' +
+    type +
+    '</span>' +
+    '</div>' +
 
-          (
-            version
-              ? '<div class="row">' +
-                  '<span class="k">version string</span>' +
-                  '<span class="v">' +
-                    escapeHtml(version) +
-                  '</span>' +
-                '</div>'
-              : ''
-          ) +
+    (
+      version
+      ? '<div class="row">' +
+      '<span class="k">version string</span>' +
+      '<span class="v">' +
+      escapeHtml(version) +
+      '</span>' +
+      '</div>'
+      : ''
+    ) +
 
-          '<div class="row">' +
-            '<span class="k">update guard</span>' +
-            '<span class="v">' +
-              (
-                type === 'studio'
-                  ? 'VORTEX_STUDIO_NO_UPDATE'
-                  : 'VORTEX_NO_UPDATE'
-              ) +
-            '</span>' +
-          '</div>' +
+    '<div class="row">' +
+    '<span class="k">update guard</span>' +
+    '<span class="v">' +
+    (
+      type === 'studio'
+      ? 'VORTEX_STUDIO_NO_UPDATE'
+      : 'VORTEX_NO_UPDATE'
+    ) +
+    '</span>' +
+    '</div>' +
 
-          '<div class="row">' +
-            '<span class="k">wrapper</span>' +
-            '<span class="v ' +
-              (hasWrapper ? 'bool-true' : 'bool-false') +
-            '">' +
-              (hasWrapper ? 'TRUE' : 'FALSE') +
-            '</span>' +
-          '</div>' +
+    '<div class="row">' +
+    '<span class="k">wrapper</span>' +
+    '<span class="v ' +
+    (hasWrapper ? 'bool-true' : 'bool-false') +
+    '">' +
+    (hasWrapper ? 'TRUE' : 'FALSE') +
+    '</span>' +
+    '</div>' +
 
-        '</div>' +
-      '</div>';
+    '</div>' +
+    '</div>';
   }
 
   function escapeHtml(str) {
@@ -1004,19 +1003,19 @@
 
   const FACE_BY_ID = {
     0: 'Right',
-    1: 'Top',
-    2: 'Back',
-    3: 'Left',
-    4: 'Bottom',
-    5: 'Front'
+ 1: 'Top',
+ 2: 'Back',
+ 3: 'Left',
+ 4: 'Bottom',
+ 5: 'Front'
   };
   const FACE_ID_BY_NAME = {
     Right: 0,
-    Top: 1,
-    Back: 2,
-    Left: 3,
-    Bottom: 4,
-    Front: 5
+ Top: 1,
+ Back: 2,
+ Left: 3,
+ Bottom: 4,
+ Front: 5
   };
 
   const MAX_OUTPUT_SIZE = 256 * 1024 * 1024;
@@ -1308,23 +1307,31 @@
     return footer;
   }
 
-  function readVariableBody(reader, name, remains) {
+  const NO_PROPERTY_CLASS_IDS = new Set([0, 1, 3, 4, 10, 11, 12, 13, 14, 15]);
+
+  function readVariableBody(reader, name, remains, cls) {
     const parentId = reader.opt_id();
     const end = remains ? nextHeader(reader.data, reader.pos) : reader.data.length - 57;
     if (end === null || end < reader.pos) {
       throw new Error('cannot find end of record ' + JSON.stringify(name));
     }
     const raw = reader.take(end - reader.pos);
-    const body = { parent_id: parentId, raw_body: bytesToBase64(raw) };
-    if (raw.length) body.collapsed = !!raw[raw.length - 1];
+    const collapsed = raw.length ? !!raw[raw.length - 1] : undefined;
+    const body = { parent_id: parentId };
+    if (collapsed !== undefined) body.collapsed = collapsed;
+    if (NO_PROPERTY_CLASS_IDS.has(cls)) {
+      body.footer = bytesToBase64(raw);
+    } else {
+      body.raw_body = bytesToBase64(raw);
+    }
     return body;
   }
 
   function readLight(reader, spot) {
     const out = {
       color: readVec(reader, 4),
-      intensity: reader.f32(),
-      range: reader.f32()
+ intensity: reader.f32(),
+ range: reader.f32()
     };
     if (spot) {
       out.fov = reader.f32();
@@ -1336,12 +1343,12 @@
   function readPart(reader) {
     const body = {
       parent_id: reader.opt_id(),
-      display_name: reader.bo() ? reader.string() : null,
-      position: readVec(reader, 3),
-      rotation: readVec(reader, 4),
-      size: readVec(reader, 3),
-      color: readVec(reader, 4),
-      material: materialName(reader.u32())
+ display_name: reader.bo() ? reader.string() : null,
+ position: readVec(reader, 3),
+ rotation: readVec(reader, 4),
+ size: readVec(reader, 3),
+ color: readVec(reader, 4),
+ material: materialName(reader.u32())
     };
     body.prefix = bytesToBase64(reader.take(1));
     for (const key of [
@@ -1363,7 +1370,7 @@
     for (let i = 0; i < count; i++) {
       body.textures.push({
         face: faceName(reader.u32()),
-        kind: reader.u32()
+                         kind: reader.u32()
       });
     }
     body.point_light = reader.bo() ? readLight(reader, false) : null;
@@ -1384,8 +1391,8 @@
     } else if (SCRIPT_CLASS_IDS.has(cls)) {
       body = {
         parent_id: reader.opt_id(),
-        unknown_prefix: bytesToBase64(reader.take(3)),
-        source: reader.bo() ? reader.string() : null
+ unknown_prefix: bytesToBase64(reader.take(3)),
+ source: reader.bo() ? reader.string() : null
       };
       const end = remains ? nextHeader(reader.data, reader.pos) : reader.data.length - 57;
       if (end === null || end < reader.pos) {
@@ -1395,7 +1402,7 @@
       body.collapsed = tail.length ? !!tail[tail.length - 1] : null;
       body.tail = bytesToBase64(tail);
     } else {
-      body = readVariableBody(reader, name, remains);
+      body = readVariableBody(reader, name, remains, cls);
     }
 
     return { class_id: className(cls), name, body };
@@ -1404,29 +1411,27 @@
   function decodePayload(payload, compression) {
     const reader = new Reader(payload);
     const result = {
-      format: 'vrtx-json',
-      format_version: 1,
-      compression,
-      version: reader.u8(),
-      project_id: reader.string()
+      format: 'nvtjson',
+        format_version: 1,
+          compression,
+ version: reader.u8(),
+ project_id: reader.string()
     };
     const count = reader.u64();
     result.records = [];
     for (let i = 0; i < count; i++) {
       result.records.push(readRecord(reader, count - i - 1));
     }
-    result.footer = {
-      lighting: {
-        ambient_color: readVec(reader, 4),
-        brightness: reader.f32(),
-        sun_color: readVec(reader, 4),
-        sun_illuminance: reader.f32(),
-        sun_shadow_maps_enabled: reader.bo(),
-        sun_direction: readVec(reader, 4)
-      }
+    result.lighting = {
+      ambient_color: readVec(reader, 4),
+ brightness: reader.f32(),
+ sun_color: readVec(reader, 4),
+ sun_illuminance: reader.f32(),
+ sun_shadow_maps_enabled: reader.bo(),
+ sun_direction: readVec(reader, 4)
     };
     if (reader.pos !== payload.length) {
-      result.footer.trailing_bytes = bytesToBase64(reader.take(payload.length - reader.pos));
+      result.trailing_bytes = bytesToBase64(reader.take(payload.length - reader.pos));
     }
     return normalizeDoc(result);
   }
@@ -1493,12 +1498,8 @@
 
   function writeVariableBody(writer, body, fieldLabel) {
     writer.opt_id(body.parent_id);
-    writer.bytes(base64ToBytes(body.raw_body || ''));
-    if (body.raw_body && body.collapsed !== undefined && body.collapsed !== null) {
-      const raw = base64ToBytes(body.raw_body);
-      raw[raw.length - 1] = body.collapsed ? 1 : 0;
-      writer.bytes(raw.slice(base64ToBytes(body.raw_body || '').length));
-    }
+    const raw = body.footer !== undefined ? body.footer : body.raw_body;
+    writer.bytes(base64ToBytes(raw || ''));
   }
 
   function writeRecord(writer, record) {
@@ -1518,13 +1519,13 @@
       writer.bytes(base64ToBytes(body.tail || ''));
     } else {
       writer.opt_id(body.parent_id);
-      writer.bytes(base64ToBytes(body.raw_body || ''));
+      writer.bytes(base64ToBytes(body.footer !== undefined ? body.footer : (body.raw_body || '')));
     }
   }
 
   function encodePayload(doc) {
-    if (doc.format !== 'vrtx-json') {
-      throw new Error('not a vrtx-json document');
+    if (doc.format !== 'nvtjson') {
+      throw new Error('not a nvtjson document');
     }
     const writer = new Writer();
     writer.u8(doc.version);
@@ -1534,45 +1535,45 @@
     for (const record of records) {
       writeRecord(writer, record);
     }
-    const light = doc.footer && doc.footer.lighting;
+    const light = doc.lighting;
     if (!light) {
-      throw new Error('footer.lighting is required');
+      throw new Error('lighting is required');
     }
-    writeVec(writer, light.ambient_color, 4, 'footer.lighting.ambient_color');
+    writeVec(writer, light.ambient_color, 4, 'lighting.ambient_color');
     writer.f32(light.brightness);
-    writeVec(writer, light.sun_color, 4, 'footer.lighting.sun_color');
+    writeVec(writer, light.sun_color, 4, 'lighting.sun_color');
     writer.f32(light.sun_illuminance);
     writer.bo(light.sun_shadow_maps_enabled);
     if (light.sun_direction) {
-      writeVec(writer, light.sun_direction, 4, 'footer.lighting.sun_direction');
+      writeVec(writer, light.sun_direction, 4, 'lighting.sun_direction');
     } else {
-      writer.bytes(base64ToBytes(doc.footer.unknown_quat || ''));
+      writer.bytes(base64ToBytes(doc.unknown_quat || ''));
     }
-    writer.bytes(base64ToBytes(doc.footer.trailing_bytes || ''));
+    writer.bytes(base64ToBytes(doc.trailing_bytes || ''));
     return writer.output();
   }
 
   async function loadZstd() {
     if (!zstdPromise) {
       zstdPromise = import('https://cdn.jsdelivr.net/npm/zstdify@1.4.0/+esm')
-        .then((mod) => ({
-          compress: mod.compress,
-          decompress: mod.decompress
-        }))
-        .catch((err) => {
-          zstdPromise = null;
-          throw err;
-        });
+      .then((mod) => ({
+        compress: mod.compress,
+        decompress: mod.decompress
+      }))
+      .catch((err) => {
+        zstdPromise = null;
+        throw err;
+      });
     }
     return zstdPromise;
   }
 
   function startsWithVrtx(bytes) {
     return bytes.length >= 5 &&
-      bytes[0] === 0x56 &&
-      bytes[1] === 0x52 &&
-      bytes[2] === 0x54 &&
-      bytes[3] === 0x58;
+    bytes[0] === 0x56 &&
+    bytes[1] === 0x52 &&
+    bytes[2] === 0x54 &&
+    bytes[3] === 0x58;
   }
 
   async function decodeVrtxFile(bytes) {
@@ -1585,8 +1586,8 @@
       const codec = await loadZstd();
       payload = codec.decompress(bytes.slice(5), { maxSize: MAX_OUTPUT_SIZE });
       compression = {
-        kind: 'vrtx-zstd',
-        wrapper_version: bytes[4]
+        kind: 'nvtzstd',
+ wrapper_version: bytes[4]
       };
     }
     return decodePayload(payload, compression);
@@ -1596,7 +1597,7 @@
     const payload = encodePayload(doc);
     try {
       const codec = await loadZstd();
-      const compressed = codec.compress(payload);
+      const compressed = codec.compress(payload, { level: 9 });
       const out = new Uint8Array(5 + compressed.length);
       out.set([0x56, 0x52, 0x54, 0x58, 4], 0);
       out.set(compressed, 5);
@@ -1635,8 +1636,8 @@
       const summary = document.createElement('summary');
       summary.className = 'json-summary';
       summary.innerHTML =
-        (label ? '<span class="json-key">' + escapeHtml(label) + '</span><span class="json-punct">:</span> ' : '') +
-        '<span class="json-type">array[' + value.length + ']</span>';
+      (label ? '<span class="json-key">' + escapeHtml(label) + '</span><span class="json-punct">:</span> ' : '') +
+      '<span class="json-type">array[' + value.length + ']</span>';
       details.appendChild(summary);
       const tree = document.createElement('div');
       tree.className = 'json-tree';
@@ -1655,8 +1656,8 @@
       summary.className = 'json-summary';
       const keys = Object.keys(value);
       summary.innerHTML =
-        (label ? '<span class="json-key">' + escapeHtml(label) + '</span><span class="json-punct">:</span> ' : '') +
-        '<span class="json-type">object{' + keys.length + '}</span>';
+      (label ? '<span class="json-key">' + escapeHtml(label) + '</span><span class="json-punct">:</span> ' : '') +
+      '<span class="json-type">object{' + keys.length + '}</span>';
       details.appendChild(summary);
       const tree = document.createElement('div');
       tree.className = 'json-tree';
@@ -1726,10 +1727,10 @@
 
   function renderPreviewError(message) {
     preview.innerHTML =
-      '<div class="json-error">' +
-        'JSON parse error: ' +
-        escapeHtml(message) +
-      '</div>';
+    '<div class="json-error">' +
+    'JSON parse error: ' +
+    escapeHtml(message) +
+    '</div>';
   }
 
   function syncFromEditor() {
@@ -1772,7 +1773,7 @@
       const name = currentFileName.replace(/\.vrtx$/i, '') + '.json';
       downloadBlob(
         new Blob([JSON.stringify(parsed, null, 2) + '\n'], { type: 'application/json' }),
-        name
+                   name
       );
       setStatus('JSON exported.', 'ok');
     } catch (err) {
@@ -1792,8 +1793,8 @@
       downloadBlob(blob, fileName);
       setStatus(
         result.compressed
-          ? 'VRTX exported with compression.'
-          : 'VRTX exported as raw payload because the zstd library could not be loaded.',
+        ? 'VRTX exported with compression.'
+        : 'VRTX exported as raw payload because the zstd library could not be loaded.',
         result.compressed ? 'ok' : 'error'
       );
     } catch (err) {
@@ -1871,27 +1872,25 @@
       currentDoc = normalized;
       renderPreview(normalized);
     } catch (err) {
-
+      // Leave invalid text in place; the preview already reports the issue.
     }
   });
 
   editor.value = JSON.stringify({
-    format: 'vrtx-json',
-    format_version: 1,
-    compression: { kind: 'raw' },
-    version: 1,
-    project_id: '00000000000000000000000000000000',
-    records: [],
-    footer: {
-      lighting: {
-        ambient_color: [1, 1, 1, 1],
-        brightness: 2000,
-        sun_color: [1, 1, 1, 1],
-        sun_illuminance: 8000,
-        sun_shadow_maps_enabled: true,
-        sun_direction: [0, 1, 0, 0]
-      }
-    }
+    format: 'nvtjson',
+      format_version: 1,
+        compression: { kind: 'nvtzstd', wrapper_version: 4 },
+        version: 1,
+        project_id: '00000000000000000000000000000000',
+        records: [],
+        lighting: {
+          ambient_color: [1, 1, 1, 1],
+          brightness: 2000,
+          sun_color: [1, 1, 1, 1],
+          sun_illuminance: 8000,
+          sun_shadow_maps_enabled: true,
+          sun_direction: [-0.394473, 0.439168, 0.223347, 0.775654]
+        }
   }, null, 2) + '\n';
   currentDoc = normalizeDoc(JSON.parse(editor.value));
   renderPreview(currentDoc);
@@ -1899,9 +1898,8 @@
 
   window.vrtxCodec = {
     decode: decodeVrtxFile,
-    encode: encodeVrtxFile,
-    normalize: normalizeDoc,
-    clone: cloneDoc
+ encode: encodeVrtxFile,
+ clone: cloneDoc
   };
 })();
 
@@ -1946,8 +1944,8 @@
   function renderFiles() {
     grid.innerHTML = '';
     countEl.textContent = files.length
-      ? files.length + ' file' + (files.length === 1 ? '' : 's') + ' ready'
-      : 'No files selected';
+    ? files.length + ' file' + (files.length === 1 ? '' : 's') + ' ready'
+    : 'No files selected';
     clearBtn.disabled = !files.length;
     downloadBtn.disabled = files.length < 2 || !mergedDoc;
 
@@ -1955,14 +1953,15 @@
       grid.innerHTML = '<div class="merger-empty">Your selected files will appear here.</div>';
       return;
     }
+
     files.forEach((entry, index) => {
       const tile = document.createElement('div');
       tile.className = 'merger-file-tile';
       tile.innerHTML =
-        '<div class="merger-file-icon">VRTX</div>' +
-        '<div class="merger-file-details"><strong>' + escapeHtml(entry.file.name) + '</strong>' +
-        '<span>' + formatBytes(entry.file.size) + (entry.records ? ' · ' + entry.records + ' records' : '') + '</span></div>' +
-        '<button type="button" class="merger-remove" aria-label="Remove ' + escapeHtml(entry.file.name) + '">&times;</button>';
+      '<div class="merger-file-icon">VRTX</div>' +
+      '<div class="merger-file-details"><strong>' + escapeHtml(entry.file.name) + '</strong>' +
+      '<span>' + formatBytes(entry.file.size) + (entry.records ? ' · ' + entry.records + ' records' : '') + '</span></div>' +
+      '<button type="button" class="merger-remove" aria-label="Remove ' + escapeHtml(entry.file.name) + '">&times;</button>';
       tile.querySelector('.merger-remove').addEventListener('click', () => {
         files.splice(index, 1);
         mergedDoc = null;
@@ -1970,41 +1969,68 @@
         renderFiles();
         if (files.length >= 2) mergeFiles();
       });
-      grid.appendChild(tile);
+        grid.appendChild(tile);
     });
   }
 
   function mergeDocuments(documents) {
     const base = window.vrtxCodec.clone(documents[0]);
-    const baseRecords = base.records || [];
-    const workspaceIndex = baseRecords.findIndex((record) => record.class_id === 'Workspace');
-    const parentForMergedRoots = workspaceIndex >= 0 ? workspaceIndex : null;
-    let records = baseRecords.slice();
+    let records = (base.records || []).slice();
+    const serviceRootClasses = new Set([
+      'Workspace',
+      'Lighting',
+      'ReplicatedStorage',
+      'StarterPlayerScripts',
+      'ServerScriptService'
+    ]);
+    const rootByClass = new Map();
+
+    records.forEach((record, index) => {
+      const parent = record.body && record.body.parent_id;
+      if (
+        (parent === null || parent === undefined) &&
+        serviceRootClasses.has(record.class_id) &&
+        !rootByClass.has(record.class_id)
+      ) {
+        rootByClass.set(record.class_id, index);
+      }
+    });
 
     documents.slice(1).forEach((doc) => {
       const sourceRecords = doc.records || [];
-      const sourceWorkspaceIndexes = new Set(
-        sourceRecords
-          .map((record, index) => record.class_id === 'Workspace' ? index : -1)
-          .filter((index) => index >= 0)
-      );
       const indexMap = new Map();
+
       sourceRecords.forEach((record, index) => {
-        if (!sourceWorkspaceIndexes.has(index)) {
+        const parent = record.body && record.body.parent_id;
+        const isRoot = parent === null || parent === undefined;
+        if (!isRoot) return;
+
+        if (serviceRootClasses.has(record.class_id) && rootByClass.has(record.class_id)) {
+          indexMap.set(index, rootByClass.get(record.class_id));
+        } else {
           indexMap.set(index, records.length);
           records.push(window.vrtxCodec.clone(record));
+          if (serviceRootClasses.has(record.class_id)) {
+            rootByClass.set(record.class_id, records.length - 1);
+          }
         }
       });
+
       sourceRecords.forEach((record, index) => {
-        if (!indexMap.has(index)) return;
-        const target = records[indexMap.get(index)];
+        if (indexMap.has(index)) return;
+        indexMap.set(index, records.length);
+        records.push(window.vrtxCodec.clone(record));
+      });
+
+      sourceRecords.forEach((record, index) => {
         const parent = record.body && record.body.parent_id;
-        if (parent === null || parent === undefined || sourceWorkspaceIndexes.has(parent)) {
-          target.body.parent_id = parentForMergedRoots;
-        } else if (indexMap.has(parent)) {
+        const isRoot = parent === null || parent === undefined;
+        if (isRoot || !indexMap.has(index)) return;
+        const target = records[indexMap.get(index)];
+        if (target.body && indexMap.has(parent)) {
           target.body.parent_id = indexMap.get(parent);
-        } else {
-          target.body.parent_id = parentForMergedRoots;
+        } else if (target.body) {
+          target.body.parent_id = null;
         }
       });
     });
@@ -2020,11 +2046,13 @@
       renderFiles();
       return;
     }
-    statusEl.textContent = 'Reading and reparenting files…';
+    statusEl.textContent = 'Reading and preserving file hierarchies…';
     downloadBtn.disabled = true;
     try {
       const documents = await Promise.all(files.map((entry) => window.vrtxCodec.decode(entry.bytes)));
-      documents.forEach((doc, index) => { files[index].records = (doc.records || []).length; });
+      documents.forEach((doc, index) => {
+        files[index].records = (doc.records || []).length;
+      });
       mergedDoc = mergeDocuments(documents);
       outputNameEl.textContent = 'merged-project.vrtx · ' + (mergedDoc.records || []).length + ' records';
       statusEl.textContent = 'Ready to download. ' + (mergedDoc.records || []).length + ' records in the merged file.';
@@ -2047,6 +2075,7 @@
         files.push({ file, bytes: new Uint8Array(await file.arrayBuffer()), records: 0 });
       }
     }
+    fileInput.value = '';
     mergedDoc = null;
     renderFiles();
     await mergeFiles();
@@ -2101,15 +2130,15 @@
     const data = await response.json();
 
     const deployments = data.workflow_runs
-      .filter(run =>
-        run.path &&
-        run.path.includes('pages') &&
-        run.status === 'completed'
-      )
-      .sort(
-        (a, b) =>
-          new Date(b.created_at) - new Date(a.created_at)
-      );
+    .filter(run =>
+    run.path &&
+    run.path.includes('pages') &&
+    run.status === 'completed'
+    )
+    .sort(
+      (a, b) =>
+      new Date(b.created_at) - new Date(a.created_at)
+    );
 
     if (!deployments.length) {
       throw new Error('No Pages workflow runs found');
@@ -2118,10 +2147,10 @@
     const latest = deployments[0];
 
     versionEl.textContent =
-      'v' + latest.run_number;
+    'v' + latest.run_number;
 
   } catch (err) {
     console.error('Failed to load site version:', err);
-    versionEl.textContent = 'v0.2.?';
+    versionEl.textContent = 'v?';
   }
 })();
