@@ -1920,6 +1920,12 @@
   const files = [];
   let mergedDoc = null;
 
+  function escapeHtml(value) {
+    const div = document.createElement('div');
+    div.textContent = String(value);
+    return div.innerHTML;
+  }
+
   function formatBytes(bytes) {
     if (bytes < 1024) return bytes + ' B';
     if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';

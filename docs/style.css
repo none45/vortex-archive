@@ -1147,3 +1147,9 @@
       margin-bottom: 2px;
     }
   }
+
+  @media (min-width: 641px) {
+    .mobile-nav {
+      display: none !important;
+    }
+  }
