@@ -3,6 +3,7 @@
     "/": true,
     "/contributing/": true,
     "/archive-downloader/": false,
-    "/version-checker/": false
+    "/version-checker/": false,
+    "/vrtx-editor/": false
   }
 }
