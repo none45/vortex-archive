@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>none's vortex tools</title>
 <link rel="icon" type="image/png" href="/vortex-archive/favicon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -39,6 +40,15 @@
   </div>
 </div>
 
+<nav class="mobile-nav" aria-label="Mobile navigation">
+  <a href="/vortex-archive/" data-route="/">Home</a>
+  <a href="/vortex-archive/archive-downloader/" data-route="/archive-downloader/">Downloader</a>
+  <a href="/vortex-archive/version-checker/" data-route="/version-checker/">Checker</a>
+  <a href="/vortex-archive/vrtx-editor/" data-route="/vrtx-editor/">.VRTX Editor</a>
+  <a href="/vortex-archive/vrtx-merger/" data-route="/vrtx-merger/">.VRTX Merger</a>
+  <a href="/vortex-archive/contributing/" data-route="/contributing/">Contributing</a>
+</nav>
+
 <div class="body-row">
 <div class="sidebar" id="sidebar">
   <ul style="margin-bottom: 10px;">
@@ -52,9 +62,10 @@
     <li><a href="/vortex-archive/version-checker/" data-route="/version-checker/" id="navChecker">Vortex Version Checker</a></li>
   </ul>
   <hr style="border: none; border-top: 1px solid var(--border-soft); margin: 10px 8px 16px;">
-  <h4>Editors</h4>
+  <h4>FILE</h4>
   <ul>
     <li><a href="/vortex-archive/vrtx-editor/" data-route="/vrtx-editor/" id="navVrtxEditor">.VRTX Editor</a></li>
+    <li><a href="/vortex-archive/vrtx-merger/" data-route="/vrtx-merger/" id="navVrtxMerger">.VRTX Merger</a></li>
   </ul>
   <div class="sidebar-resize" id="sidebarResize"></div>
 </div>
@@ -163,6 +174,41 @@
       </div>
 
       <footer>The editor keeps raw bytes for unsupported fields, but it needs a browser-side zstd library to export a compressed VRTX wrapper.</footer>
+    </div>
+
+    <div class="view" id="view-vrtx-merger">
+      <div class="merger-layout">
+        <div class="merger-files-panel">
+          <div class="merger-panel-heading">
+            <div>
+              <label class="field-label">Source files</label>
+              <div class="merger-count" id="vrtxMergerCount">No files selected</div>
+            </div>
+            <button type="button" class="help-btn" id="vrtxMergerClearBtn">Clear all</button>
+          </div>
+          <label class="drop merger-drop" id="vrtxMergerDrop" for="vrtxMergerFileInput">
+            <input type="file" id="vrtxMergerFileInput" accept=".vrtx,application/octet-stream" multiple>
+            <div class="drop-label">Drop .vrtx files here, or tap to choose</div>
+            <div class="drop-hint">Files stay in your browser and can be removed before merging</div>
+          </label>
+          <div class="merger-file-grid" id="vrtxMergerFileGrid">
+            <div class="merger-empty">Your selected files will appear here.</div>
+          </div>
+          <div class="vc-progress" id="vrtxMergerStatus"></div>
+        </div>
+        <aside class="merger-side-panel">
+          <div class="merger-output-card">
+            <div class="field-label">Output file</div>
+            <div class="merger-output-name" id="vrtxMergerOutputName">merged-project.vrtx</div>
+            <button class="action" id="vrtxMergerDownloadBtn" type="button" disabled>Download merged .vrtx</button>
+          </div>
+          <div class="merger-intro">
+            <h1>.VRTX Merger</h1>
+            <p class="sub">Combine multiple Vortex projects into one file. Each project’s objects are reparented under the first project workspace so the merged hierarchy stays intact.</p>
+            <p class="merger-note">The merge happens locally in your browser. The first file supplies the project settings and lighting.</p>
+          </div>
+        </aside>
+      </div>
     </div>
 
   </div>

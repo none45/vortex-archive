@@ -39,7 +39,8 @@
     '/contributing/': document.getElementById('view-contributing'),
     '/archive-downloader/': document.getElementById('view-downloader'),
     '/version-checker/': document.getElementById('view-checker'),
-    '/vrtx-editor/': document.getElementById('view-vrtx-editor')
+    '/vrtx-editor/': document.getElementById('view-vrtx-editor'),
+    '/vrtx-merger/': document.getElementById('view-vrtx-merger')
   };
   const navLinks = document.querySelectorAll('[data-route]');
   const readmeNavLink = document.getElementById('readmeNavLink');
@@ -47,6 +48,7 @@
   const navDownloader = document.getElementById('navDownloader');
   const navChecker = document.getElementById('navChecker');
   const navVrtxEditor = document.getElementById('navVrtxEditor');
+  const navVrtxMerger = document.getElementById('navVrtxMerger');
   const mainCard = document.getElementById('mainCard');
   const mainEl = document.getElementById('mainEl');
 
@@ -130,7 +132,7 @@
       views[key].classList.toggle('active', key === route);
     });
 
-    const forceWide = route === '/vrtx-editor/';
+    const forceWide = route === '/vrtx-editor/' || route === '/vrtx-merger/';
     mainCard.classList.toggle(
       'wide',
       forceWide || !!(config.wideMode && config.wideMode[route])
@@ -165,14 +167,24 @@
 
     } else if (route === '/vrtx-editor/') {
       navVrtxEditor.classList.remove('inactive');
+    } else if (route === '/vrtx-merger/') {
+      navVrtxMerger.classList.remove('inactive');
     }
+
+    navLinks.forEach((link) => {
+      if (link.getAttribute('data-route') === route) {
+        link.classList.add('active');
+        link.classList.remove('inactive');
+      }
+    });
 
     const titles = {
       '/': 'none\'s vortex tools',
       '/contributing/': 'none\'s vortex tools',
       '/archive-downloader/': 'none\'s archive downloader',
       '/version-checker/': 'none\'s version checker',
-      '/vrtx-editor/': 'none\'s .vrtx editor'
+      '/vrtx-editor/': 'none\'s .vrtx editor',
+      '/vrtx-merger/': 'none\'s .vrtx merger'
     };
 
     document.title = titles[route] || titles['/'];
@@ -1884,6 +1896,186 @@
   currentDoc = normalizeDoc(JSON.parse(editor.value));
   renderPreview(currentDoc);
   setStatus('Load a .vrtx file or start from the default document.', 'neutral');
+
+  window.vrtxCodec = {
+    decode: decodeVrtxFile,
+    encode: encodeVrtxFile,
+    normalize: normalizeDoc,
+    clone: cloneDoc
+  };
+})();
+
+(function () {
+  const root = document.getElementById('view-vrtx-merger');
+  if (!root) return;
+
+  const fileInput = document.getElementById('vrtxMergerFileInput');
+  const drop = document.getElementById('vrtxMergerDrop');
+  const grid = document.getElementById('vrtxMergerFileGrid');
+  const countEl = document.getElementById('vrtxMergerCount');
+  const statusEl = document.getElementById('vrtxMergerStatus');
+  const clearBtn = document.getElementById('vrtxMergerClearBtn');
+  const downloadBtn = document.getElementById('vrtxMergerDownloadBtn');
+  const outputNameEl = document.getElementById('vrtxMergerOutputName');
+  const files = [];
+  let mergedDoc = null;
+
+  function formatBytes(bytes) {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+  }
+
+  function downloadBlob(blob, filename) {
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  function renderFiles() {
+    grid.innerHTML = '';
+    countEl.textContent = files.length
+      ? files.length + ' file' + (files.length === 1 ? '' : 's') + ' ready'
+      : 'No files selected';
+    clearBtn.disabled = !files.length;
+    downloadBtn.disabled = files.length < 2 || !mergedDoc;
+
+    if (!files.length) {
+      grid.innerHTML = '<div class="merger-empty">Your selected files will appear here.</div>';
+      return;
+    }
+    files.forEach((entry, index) => {
+      const tile = document.createElement('div');
+      tile.className = 'merger-file-tile';
+      tile.innerHTML =
+        '<div class="merger-file-icon">VRTX</div>' +
+        '<div class="merger-file-details"><strong>' + escapeHtml(entry.file.name) + '</strong>' +
+        '<span>' + formatBytes(entry.file.size) + (entry.records ? ' · ' + entry.records + ' records' : '') + '</span></div>' +
+        '<button type="button" class="merger-remove" aria-label="Remove ' + escapeHtml(entry.file.name) + '">&times;</button>';
+      tile.querySelector('.merger-remove').addEventListener('click', () => {
+        files.splice(index, 1);
+        mergedDoc = null;
+        statusEl.textContent = '';
+        renderFiles();
+        if (files.length >= 2) mergeFiles();
+      });
+      grid.appendChild(tile);
+    });
+  }
+
+  function mergeDocuments(documents) {
+    const base = window.vrtxCodec.clone(documents[0]);
+    const baseRecords = base.records || [];
+    const workspaceIndex = baseRecords.findIndex((record) => record.class_id === 'Workspace');
+    const parentForMergedRoots = workspaceIndex >= 0 ? workspaceIndex : null;
+    let records = baseRecords.slice();
+
+    documents.slice(1).forEach((doc) => {
+      const sourceRecords = doc.records || [];
+      const sourceWorkspaceIndexes = new Set(
+        sourceRecords
+          .map((record, index) => record.class_id === 'Workspace' ? index : -1)
+          .filter((index) => index >= 0)
+      );
+      const indexMap = new Map();
+      sourceRecords.forEach((record, index) => {
+        if (!sourceWorkspaceIndexes.has(index)) {
+          indexMap.set(index, records.length);
+          records.push(window.vrtxCodec.clone(record));
+        }
+      });
+      sourceRecords.forEach((record, index) => {
+        if (!indexMap.has(index)) return;
+        const target = records[indexMap.get(index)];
+        const parent = record.body && record.body.parent_id;
+        if (parent === null || parent === undefined || sourceWorkspaceIndexes.has(parent)) {
+          target.body.parent_id = parentForMergedRoots;
+        } else if (indexMap.has(parent)) {
+          target.body.parent_id = indexMap.get(parent);
+        } else {
+          target.body.parent_id = parentForMergedRoots;
+        }
+      });
+    });
+
+    base.records = records;
+    base.project_id = base.project_id || 'merged-project';
+    return base;
+  }
+
+  async function mergeFiles() {
+    if (files.length < 2) {
+      mergedDoc = null;
+      renderFiles();
+      return;
+    }
+    statusEl.textContent = 'Reading and reparenting files…';
+    downloadBtn.disabled = true;
+    try {
+      const documents = await Promise.all(files.map((entry) => window.vrtxCodec.decode(entry.bytes)));
+      documents.forEach((doc, index) => { files[index].records = (doc.records || []).length; });
+      mergedDoc = mergeDocuments(documents);
+      outputNameEl.textContent = 'merged-project.vrtx · ' + (mergedDoc.records || []).length + ' records';
+      statusEl.textContent = 'Ready to download. ' + (mergedDoc.records || []).length + ' records in the merged file.';
+      renderFiles();
+    } catch (err) {
+      mergedDoc = null;
+      statusEl.textContent = 'Could not merge: ' + err.message;
+      renderFiles();
+    }
+  }
+
+  async function addFiles(selectedFiles) {
+    const incoming = Array.from(selectedFiles).filter((file) => /\.vrtx$/i.test(file.name));
+    if (!incoming.length) {
+      statusEl.textContent = 'Please choose one or more .vrtx files.';
+      return;
+    }
+    for (const file of incoming) {
+      if (!files.some((entry) => entry.file.name === file.name && entry.file.size === file.size)) {
+        files.push({ file, bytes: new Uint8Array(await file.arrayBuffer()), records: 0 });
+      }
+    }
+    mergedDoc = null;
+    renderFiles();
+    await mergeFiles();
+  }
+
+  fileInput.addEventListener('change', () => addFiles(fileInput.files));
+  drop.addEventListener('dragover', (event) => {
+    event.preventDefault();
+    drop.classList.add('dragover');
+  });
+  drop.addEventListener('dragleave', () => drop.classList.remove('dragover'));
+  drop.addEventListener('drop', (event) => {
+    event.preventDefault();
+    drop.classList.remove('dragover');
+    addFiles(event.dataTransfer.files);
+  });
+  clearBtn.addEventListener('click', () => {
+    files.length = 0;
+    mergedDoc = null;
+    outputNameEl.textContent = 'merged-project.vrtx';
+    statusEl.textContent = '';
+    renderFiles();
+  });
+  downloadBtn.addEventListener('click', async () => {
+    if (!mergedDoc) return;
+    try {
+      statusEl.textContent = 'Preparing merged file…';
+      const result = await window.vrtxCodec.encode(mergedDoc);
+      downloadBlob(new Blob([result.bytes], { type: 'application/octet-stream' }), 'merged-project.vrtx');
+      statusEl.textContent = result.compressed ? 'Merged .vrtx downloaded.' : 'Merged raw payload downloaded.';
+    } catch (err) {
+      statusEl.textContent = 'Could not export: ' + err.message;
+    }
+  });
+  renderFiles();
 })();
 
 (async function () {
