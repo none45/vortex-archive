@@ -1859,7 +1859,7 @@
       currentDoc = normalized;
       renderPreview(normalized);
     } catch (err) {
-      // Leave invalid text in place; the preview already reports the issue.
+
     }
   });
 
@@ -1868,7 +1868,7 @@
     format_version: 1,
     compression: { kind: 'raw' },
     version: 1,
-    project_id: 'new-project',
+    project_id: '00000000000000000000000000000000',
     records: [],
     footer: {
       lighting: {
