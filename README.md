@@ -1,6 +1,8 @@
 # none's vortex archive
 
-An archive of Vortex Client and Vortex Studio builds, hosted with permission from the owner. This exists to preserve older versions that are no longer easy to find.
+An archive of Vortex Client and Vortex Studio builds. This exists to preserve older versions that are no longer easy to find.
+
+Alongside the archive, this site also hosts a handful of tools for working with builds and `.vrtx` project files.
 
 ## How to use
 
@@ -8,8 +10,10 @@ Head over to the tools instead of grabbing raw files:
 
 - **[Archive Downloader](https://none45.github.io/vortex-archive/archive-downloader/)** - pick a build (Client/Studio) and version, and download it directly.
 - **[Version Checker](https://none45.github.io/vortex-archive/version-checker/)** - drop in a binary you already have to confirm which build and version it is. It runs client-side in your browser, nothing is uploaded.
+- **[.VRTX Editor](https://none45.github.io/vortex-archive/vrtx-editor/)** - open a `.vrtx` file, edit it as JSON, and export it back out. Decoding/encoding happens entirely in your browser.
+- **[.VRTX Merger](https://none45.github.io/vortex-archive/vrtx-merger/)** - combine multiple `.vrtx` projects into one file, keeping each project's objects in their original service and parent hierarchy.
 
-Both tools are also linked in the website's sidebar.
+All four tools are also linked in the website's sidebar.
 
 ## Got something we don't have?
 
