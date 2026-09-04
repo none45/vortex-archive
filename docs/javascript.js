@@ -1020,11 +1020,13 @@
   function setStatus(message, kind) {
     statusEl.textContent = message;
     statusEl.style.color =
-      kind === 'error'
-        ? 'var(--bad)'
-        : kind === 'ok'
-          ? 'var(--good)'
-          : 'var(--muted)';
+    kind === 'error'
+    ? 'var(--bad)'
+    : kind === 'ok'
+    ? 'var(--good)'
+    : kind === 'neutral'
+    ? 'var(--neutral)'
+    : 'var(--muted)';
   }
 
   function bytesToBase64(bytes) {
@@ -1881,7 +1883,7 @@
   }, null, 2) + '\n';
   currentDoc = normalizeDoc(JSON.parse(editor.value));
   renderPreview(currentDoc);
-  setStatus('Load a .vrtx file or start from the default document.', 'ok');
+  setStatus('Load a .vrtx file or start from the default document.', 'neutral');
 })();
 
 (async function () {
