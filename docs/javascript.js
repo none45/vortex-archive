@@ -1892,7 +1892,7 @@
       currentDoc = normalized;
       renderPreview(normalized);
     } catch (err) {
-      // Leave invalid text in place; the preview already reports the issue.
+
     }
   });
 
