@@ -216,6 +216,23 @@
   const versionHelpBtn = document.getElementById('versionHelpBtn');
   const versionModal = document.getElementById('versionModal');
   const versionModalClose = document.getElementById('versionModalClose');
+  const versionTabs = document.querySelectorAll('.version-tab');
+  const versionCols = document.querySelectorAll('.version-col');
+
+  function setActiveTab(tab) {
+    versionTabs.forEach((btn) => {
+      btn.classList.toggle('active', btn.getAttribute('data-tab') === tab);
+    });
+    versionCols.forEach((col) => {
+      col.classList.toggle('active-tab', col.getAttribute('data-col') === tab);
+    });
+  }
+
+  versionTabs.forEach((btn) => {
+    btn.addEventListener('click', () => setActiveTab(btn.getAttribute('data-tab')));
+  });
+
+  setActiveTab('client');
 
   versionHelpBtn.addEventListener('click', () => versionModal.classList.add('open'));
   versionModalClose.addEventListener('click', () => versionModal.classList.remove('open'));
@@ -983,22 +1000,22 @@
 
   const MATERIAL_BY_ID = {
     0: 'Smooth',
-    1: 'Smooth',
-    2: 'Plastic',
-    3: 'Wood',
-    4: 'Metal',
-    5: 'Grass',
-    6: 'Ice',
-    7: 'Paint'
+ 1: 'Smooth',
+ 2: 'Plastic',
+ 3: 'Wood',
+ 4: 'Metal',
+ 5: 'Grass',
+ 6: 'Ice',
+ 7: 'Paint'
   };
   const MATERIAL_ID_BY_NAME = {
     Smooth: 0,
-    Plastic: 2,
-    Wood: 3,
-    Metal: 4,
-    Grass: 5,
-    Ice: 6,
-    Paint: 7
+ Plastic: 2,
+ Wood: 3,
+ Metal: 4,
+ Grass: 5,
+ Ice: 6,
+ Paint: 7
   };
 
   const FACE_BY_ID = {

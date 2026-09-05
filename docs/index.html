@@ -221,14 +221,18 @@
   <div class="modal-box">
     <button class="modal-close" id="versionModalClose">&times;</button>
     <h3>Available versions</h3>
+    <div class="version-tabs" id="versionTabs">
+      <button type="button" class="version-tab active" data-tab="client">Client</button>
+      <button type="button" class="version-tab" data-tab="studio">Studio</button>
+    </div>
     <div class="version-columns">
-      <div class="version-col">
+      <div class="version-col" data-col="client">
         <h4>Client</h4>
         <ul id="clientVersions">
           <li>Loading…</li>
         </ul>
       </div>
-      <div class="version-col">
+      <div class="version-col" data-col="studio">
         <h4>Studio</h4>
         <ul id="studioVersions">
           <li>Loading…</li>

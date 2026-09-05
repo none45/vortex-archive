@@ -182,11 +182,13 @@
           <h1>.VRTX Merger</h1>
           <p class="sub">Combine multiple Vortex projects into one file. Each project's objects remain in their original service and parent hierarchy.</p>
         </div>
+
         <div class="merger-output-card">
           <div class="field-label">Output file</div>
           <div class="merger-output-name" id="vrtxMergerOutputName">merged-project.vrtx</div>
           <button class="action" id="vrtxMergerDownloadBtn" type="button" disabled>Download merged .vrtx</button>
         </div>
+
         <div class="merger-files-panel">
           <div class="merger-panel-heading">
             <div>
@@ -195,6 +197,7 @@
             </div>
             <button type="button" class="help-btn" id="vrtxMergerClearBtn" disabled>Clear all</button>
           </div>
+
           <label class="drop merger-drop" id="vrtxMergerDrop" for="vrtxMergerFileInput">
             <input type="file" id="vrtxMergerFileInput" accept=".vrtx,application/octet-stream" multiple>
             <div class="drop-label">Drop .vrtx files here, or tap to choose</div>
@@ -205,6 +208,7 @@
           </div>
           <div class="vc-progress" id="vrtxMergerStatus"></div>
         </div>
+
         <p class="merger-note">The merge happens locally in your browser. The first file supplies project settings and lighting.</p>
       </div>
     </div>
@@ -217,14 +221,18 @@
   <div class="modal-box">
     <button class="modal-close" id="versionModalClose">&times;</button>
     <h3>Available versions</h3>
+    <div class="version-tabs" id="versionTabs">
+      <button type="button" class="version-tab active" data-tab="client">Client</button>
+      <button type="button" class="version-tab" data-tab="studio">Studio</button>
+    </div>
     <div class="version-columns">
-      <div class="version-col">
+      <div class="version-col" data-col="client">
         <h4>Client</h4>
         <ul id="clientVersions">
           <li>Loading…</li>
         </ul>
       </div>
-      <div class="version-col">
+      <div class="version-col" data-col="studio">
         <h4>Studio</h4>
         <ul id="studioVersions">
           <li>Loading…</li>
