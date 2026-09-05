@@ -903,7 +903,7 @@
     (
       version
       ? '<div class="row">' +
-      '<span class="k">version string</span>' +
+      '<span class="k">version</span>' +
       '<span class="v">' +
       escapeHtml(version) +
       '</span>' +
@@ -923,7 +923,7 @@
     '</div>' +
 
     '<div class="row">' +
-    '<span class="k">wrapper</span>' +
+    '<span class="k">noupdate</span>' +
     '<span class="v ' +
     (hasWrapper ? 'bool-true' : 'bool-false') +
     '">' +
@@ -1572,11 +1572,14 @@
 
   async function loadZstd() {
     if (!zstdPromise) {
-      zstdPromise = import('https://cdn.jsdelivr.net/npm/zstdify@1.4.0/+esm')
-      .then((mod) => ({
-        compress: mod.compress,
-        decompress: mod.decompress
-      }))
+      zstdPromise = import('/vortex-archive/zstd-bundle.js')
+      .then(async (mod) => {
+        await mod.init();
+        return {
+          compress: mod.compress,
+          decompress: mod.decompress
+        };
+      })
       .catch((err) => {
         zstdPromise = null;
         throw err;
@@ -1601,7 +1604,7 @@
         throw new Error('truncated VRTX wrapper');
       }
       const codec = await loadZstd();
-      payload = codec.decompress(bytes.slice(5), { maxSize: MAX_OUTPUT_SIZE });
+      payload = codec.decompress(bytes.slice(5));
       compression = {
         kind: 'nvtzstd',
  wrapper_version: bytes[4]
@@ -1614,7 +1617,7 @@
     const payload = encodePayload(doc);
     try {
       const codec = await loadZstd();
-      const compressed = codec.compress(payload, { level: 9 });
+      const compressed = codec.compress(payload, 19);
       const out = new Uint8Array(5 + compressed.length);
       out.set([0x56, 0x52, 0x54, 0x58, 4], 0);
       out.set(compressed, 5);
