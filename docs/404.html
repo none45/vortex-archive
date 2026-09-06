@@ -103,20 +103,29 @@
       </div>
 
       <div class="field-group">
-        <label class="checkbox-row" for="wrapCheckbox">
-          <input type="checkbox" id="wrapCheckbox">
-          <span class="checkbox-text">
-            Wrap in a NOUPDATE launcher
-            <span class="hint">Builds a small launcher that runs the exe with a env var that bypasses the launcher. The original binary itself is never altered.</span>
-          </span>
-        </label>
+        <div class="field-group-header">
+          <label class="field-label" style="margin-bottom:0;">Variant</label>
+          <span class="variant-count" id="variantCount">1 option</span>
+        </div>
+        <select id="buildVariant" class="flex-build" style="width:100%;">
+          <option value="default">Default</option>
+        </select>
       </div>
 
       <button class="action" id="goButton" style="margin-top:20px;">Download</button>
 
       <div id="dl-status"></div>
 
-      <footer>Requests go only to GitHub's API and a Cloudflare proxy, nothing else is contacted.</footer>
+      <div class="field-group" id="releaseInfoGroup" style="margin-top:24px; display:none;">
+        <label class="field-label">Release info</label>
+        <div class="release-info-card" id="releaseInfoCard">
+          <div class="release-info-row" id="releaseInfoFile"></div>
+          <div class="release-info-row" id="releaseInfoSize"></div>
+          <div class="release-info-row" id="releaseInfoSha"></div>
+        </div>
+      </div>
+
+      <footer>Requests go only to GitHub's API, nothing else is contacted.</footer>
     </div>
 
     <div class="view" id="view-checker">

@@ -1,4 +1,181 @@
 (function () {
+  function enhanceSelect(select) {
+    if (!select || select.dataset.customized === '1') return;
+    select.dataset.customized = '1';
+
+    const wrap = document.createElement('div');
+    wrap.className = 'csel';
+    if (select.classList.contains('flex-build')) wrap.classList.add('flex-build');
+    if (select.classList.contains('flex-version')) wrap.classList.add('flex-version');
+
+    const trigger = document.createElement('button');
+    trigger.type = 'button';
+    trigger.className = 'csel-trigger';
+    trigger.setAttribute('aria-haspopup', 'listbox');
+    trigger.setAttribute('aria-expanded', 'false');
+
+    const triggerLabel = document.createElement('span');
+    triggerLabel.className = 'csel-trigger-label';
+    trigger.appendChild(triggerLabel);
+
+    const list = document.createElement('ul');
+    list.className = 'csel-list';
+    list.setAttribute('role', 'listbox');
+    list.tabIndex = -1;
+
+    select.parentNode.insertBefore(wrap, select);
+    wrap.appendChild(select);
+    wrap.appendChild(trigger);
+    wrap.appendChild(list);
+
+    let activeIndex = -1;
+
+    function optionText(opt) {
+      return opt.textContent;
+    }
+
+    function rebuildList() {
+      list.innerHTML = '';
+      Array.from(select.options).forEach((opt, i) => {
+        const li = document.createElement('li');
+        li.className = 'csel-option';
+        li.setAttribute('role', 'option');
+        li.dataset.value = opt.value;
+        li.textContent = optionText(opt);
+        if (opt.disabled) li.setAttribute('aria-disabled', 'true');
+        if (opt.selected) {
+          li.setAttribute('aria-selected', 'true');
+          li.classList.add('selected');
+          activeIndex = i;
+        }
+        li.addEventListener('mousedown', (e) => {
+
+          e.preventDefault();
+          if (opt.disabled) return;
+          selectIndex(i);
+          close();
+        });
+        list.appendChild(li);
+      });
+      syncTriggerLabel();
+    }
+
+    function syncTriggerLabel() {
+      const opt = select.options[select.selectedIndex];
+      triggerLabel.textContent = opt ? optionText(opt) : '';
+    }
+
+    function selectIndex(i) {
+      if (select.selectedIndex === i) return;
+      select.selectedIndex = i;
+      select.dispatchEvent(new Event('change', { bubbles: true }));
+      syncSelectedClass();
+      syncTriggerLabel();
+    }
+
+    function syncSelectedClass() {
+      Array.from(list.children).forEach((li, i) => {
+        const isSel = i === select.selectedIndex;
+        li.classList.toggle('selected', isSel);
+        if (isSel) {
+          li.setAttribute('aria-selected', 'true');
+          activeIndex = i;
+        } else {
+          li.removeAttribute('aria-selected');
+        }
+      });
+    }
+
+    function open() {
+      if (select.disabled) return;
+      rebuildList();
+      wrap.classList.add('open');
+      trigger.setAttribute('aria-expanded', 'true');
+      const activeLi = list.children[activeIndex] || list.children[0];
+      if (activeLi) {
+        activeLi.classList.add('focused');
+        activeLi.scrollIntoView({ block: 'nearest' });
+      }
+      document.addEventListener('mousedown', onDocMouseDown, true);
+    }
+
+    function close() {
+      wrap.classList.remove('open');
+      trigger.setAttribute('aria-expanded', 'false');
+      document.removeEventListener('mousedown', onDocMouseDown, true);
+      trigger.focus();
+    }
+
+    function isOpen() {
+      return wrap.classList.contains('open');
+    }
+
+    function onDocMouseDown(e) {
+      if (!wrap.contains(e.target)) close();
+    }
+
+    function moveFocus(delta) {
+      const items = Array.from(list.children).filter(li => !li.hasAttribute('aria-disabled'));
+      if (!items.length) return;
+      let idx = items.indexOf(list.querySelector('.focused'));
+      items.forEach(li => li.classList.remove('focused'));
+      idx = (idx + delta + items.length) % items.length;
+      items[idx].classList.add('focused');
+      items[idx].scrollIntoView({ block: 'nearest' });
+      activeIndex = Array.from(list.children).indexOf(items[idx]);
+    }
+
+    trigger.addEventListener('click', () => {
+      if (isOpen()) close();
+      else open();
+    });
+
+      trigger.addEventListener('keydown', (e) => {
+        if (['ArrowDown', 'ArrowUp', 'Enter', ' '].includes(e.key)) {
+          e.preventDefault();
+          if (!isOpen()) {
+            open();
+            return;
+          }
+        }
+        if (!isOpen()) return;
+        if (e.key === 'ArrowDown') moveFocus(1);
+        else if (e.key === 'ArrowUp') moveFocus(-1);
+        else if (e.key === 'Enter' || e.key === ' ') {
+          const focused = list.querySelector('.focused');
+          if (focused) {
+            selectIndex(Array.from(list.children).indexOf(focused));
+          }
+          close();
+        } else if (e.key === 'Escape') {
+          close();
+        }
+      });
+
+
+
+      const observer = new MutationObserver(() => {
+        rebuildList();
+      });
+      observer.observe(select, { childList: true, subtree: true, attributes: true, attributeFilter: ['value'] });
+
+      select.addEventListener('change', () => {
+        syncSelectedClass();
+        syncTriggerLabel();
+      });
+
+      rebuildList();
+  }
+
+  function enhanceAll() {
+    document.querySelectorAll('#buildType, #buildVariant').forEach(enhanceSelect);
+  }
+
+  enhanceAll();
+  document.addEventListener('vortex:releases-ready', enhanceAll);
+})();
+
+(function () {
   const sidebar = document.getElementById('sidebar');
   const handle = document.getElementById('sidebarResize');
   let dragging = false;
@@ -179,11 +356,11 @@
 
     const titles = {
       '/': 'none\'s vortex tools',
- '/contributing/': 'none\'s vortex tools',
- '/archive-downloader/': 'none\'s archive downloader',
- '/version-checker/': 'none\'s version checker',
- '/vrtx-editor/': 'none\'s .vrtx editor',
- '/vrtx-merger/': 'none\'s .vrtx merger'
+      '/contributing/': 'none\'s vortex tools',
+      '/archive-downloader/': 'none\'s archive downloader',
+      '/version-checker/': 'none\'s version checker',
+      '/vrtx-editor/': 'none\'s .vrtx editor',
+      '/vrtx-merger/': 'none\'s .vrtx merger'
     };
 
     document.title = titles[route] || titles['/'];
@@ -255,6 +432,8 @@
     studio: []
   };
 
+  window.releasesByTag = {};
+
   const topbarVersionsBtn =
   document.getElementById('topbarVersionsBtn');
 
@@ -284,7 +463,7 @@
     return 'v' + version.replace(/^v/i, '');
   }
 
-  function renderList(list, versions) {
+  function renderList(list, versions, type) {
     list.innerHTML = '';
 
     if (!versions.length) {
@@ -301,7 +480,15 @@
       li.style.cursor = 'pointer';
 
       li.addEventListener('click', () => {
+        const buildType = document.getElementById('buildType');
+        if (buildType && buildType.value !== type) {
+          buildType.value = type;
+          buildType.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+
         versionInput.value = version;
+        versionInput.dispatchEvent(new Event('input', { bubbles: true }));
+
         versionModal.classList.remove('open');
       });
 
@@ -340,6 +527,7 @@
 
       for (const release of releases) {
         const tag = release.tag_name || '';
+        window.releasesByTag[tag] = release;
 
         let match = tag.match(
           /^client_(v?\d+(?:\.\d+)*)$/i
@@ -367,13 +555,17 @@
 
       renderList(
         clientList,
-        window.availableVersions.client
+        window.availableVersions.client,
+        'client'
       );
 
       renderList(
         studioList,
-        window.availableVersions.studio
+        window.availableVersions.studio,
+        'studio'
       );
+
+      document.dispatchEvent(new CustomEvent('vortex:releases-ready'));
 
     } catch (err) {
       console.error('Failed to load versions:', err);
@@ -390,287 +582,301 @@
 })();
 
 (function () {
-  const WORKER_URL =
-  'https://vortex-artifact-proxy.none45556.workers.dev';
+  const REPO_OWNER = 'none45';
+  const REPO_NAME = 'vortex-archive';
+  const RELEASES_API =
+  'https://api.github.com/repos/' + REPO_OWNER + '/' + REPO_NAME + '/releases/tags/';
 
-      const buildType = document.getElementById('buildType');
-      const versionInput = document.getElementById('version');
-      const wrapCheckbox = document.getElementById('wrapCheckbox');
-      const goButton = document.getElementById('goButton');
-      const statusEl = document.getElementById('dl-status');
+  const buildType = document.getElementById('buildType');
+  const versionInput = document.getElementById('version');
+  const buildVariant = document.getElementById('buildVariant');
+  const goButton = document.getElementById('goButton');
+  const statusEl = document.getElementById('dl-status');
 
-      async function workerRequest(path, options = {}) {
-        const res = await fetch(WORKER_URL + path, {
-          ...options,
-          headers: {
-            'Content-Type': 'application/json',
-            ...(options.headers || {})
-          }
-        });
+  const releaseInfoGroup = document.getElementById('releaseInfoGroup');
+  const releaseInfoFile = document.getElementById('releaseInfoFile');
+  const releaseInfoSize = document.getElementById('releaseInfoSize');
+  const releaseInfoSha = document.getElementById('releaseInfoSha');
+  const variantCountEl = document.getElementById('variantCount');
 
-        if (!res.ok) {
-          const text = await res.text();
-          throw new Error(
-            'Worker returned ' + res.status + ': ' + text
-          );
-        }
+  function showStatus(kind, headline, detailLines) {
+    const cls =
+    kind === 'progress'
+    ? 'dl-result-box progress'
+    : kind === 'ok'
+    ? 'dl-result-box ok'
+    : 'dl-result-box no';
 
-        return res;
+    let html =
+    '<div class="' + cls + '">' +
+    '<div class="headline">' +
+    escapeHtml(headline) +
+    '</div>';
+
+    if (detailLines && detailLines.length) {
+      html +=
+      '<div class="dl-details">' +
+      detailLines.map(escapeHtml).join('<br>') +
+      '</div>';
+    }
+
+    html += '</div>';
+
+    statusEl.innerHTML = html;
+  }
+
+  function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = String(str);
+    return div.innerHTML;
+  }
+
+  function formatBytes(bytes) {
+    if (!bytes && bytes !== 0) return '';
+    const units = ['B', 'KB', 'MB', 'GB'];
+    let i = 0;
+    let val = bytes;
+    while (val >= 1024 && i < units.length - 1) {
+      val /= 1024;
+      i++;
+    }
+    return val.toFixed(i === 0 ? 0 : 1) + ' ' + units[i];
+  }
+
+  function hideReleaseInfo() {
+    releaseInfoGroup.style.display = 'none';
+  }
+
+  function populateReleaseInfo(release, asset) {
+    releaseInfoGroup.style.display = '';
+
+    releaseInfoFile.textContent = 'File: ' + asset.name;
+    releaseInfoSize.textContent = 'Size: ' + formatBytes(asset.size);
+
+    if (asset.digest && asset.digest.startsWith('sha256:')) {
+      releaseInfoSha.textContent = 'SHA-256: ' + asset.digest.slice(7);
+    } else {
+      releaseInfoSha.textContent = 'SHA-256: not provided by GitHub for this asset';
+    }
+  }
+
+  function tagFor(type, version) {
+    return (type === 'studio' ? 'studio_' : 'client_') + version;
+  }
+
+  async function fetchRelease(type, version) {
+    const res = await fetch(RELEASES_API + encodeURIComponent(tagFor(type, version)));
+
+    if (!res.ok) {
+      throw new Error('GitHub API returned HTTP ' + res.status);
+    }
+
+    return await res.json();
+  }
+
+  function pickAsset(release, type, version, variant) {
+    const label = type === 'studio' ? 'VortexStudio' : 'Vortex';
+
+    if (variant === 'raw') {
+      const expectedRaw = (label + '.' + version + '.raw.zip').toLowerCase();
+      return (
+        release.assets.find(a => a.name.toLowerCase() === expectedRaw) ||
+        release.assets.find(a => a.name.toLowerCase().endsWith('.raw.zip')) ||
+        null
+      );
+    }
+
+    if (variant && variant !== 'default') {
+      const expectedSuffixed = (label + '.' + version + '.' + variant + '.exe').toLowerCase();
+      return release.assets.find(a => a.name.toLowerCase() === expectedSuffixed) || null;
+    }
+
+    const expected = (label + '.' + version + '.exe').toLowerCase();
+    return (
+      release.assets.find(a => a.name.toLowerCase() === expected) ||
+      release.assets.find(a => a.name.toLowerCase().endsWith('.exe')) ||
+      null
+    );
+  }
+
+  function hasRawZip(release, type, version) {
+    if (!release || !release.assets) return false;
+    const label = type === 'studio' ? 'VortexStudio' : 'Vortex';
+    const expectedRaw = (label + '.' + version + '.raw.zip').toLowerCase();
+    return release.assets.some(a => a.name.toLowerCase() === expectedRaw);
+  }
+
+  function findExeSuffixes(release, type, version) {
+    if (!release || !release.assets) return [];
+
+    const label = type === 'studio' ? 'VortexStudio' : 'Vortex';
+    const escapedLabel = label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const escapedVersion = version.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const pattern = new RegExp('^' + escapedLabel + '\\.' + escapedVersion + '\\.(.+)\\.exe$', 'i');
+
+    const suffixes = [];
+
+    for (const asset of release.assets) {
+      const match = asset.name.match(pattern);
+      if (match) {
+        suffixes.push(match[1]);
       }
+    }
 
-      function showStatus(kind, headline, detailLines) {
-        const cls =
-        kind === 'progress'
-        ? 'dl-result-box progress'
-        : kind === 'ok'
-        ? 'dl-result-box ok'
-        : 'dl-result-box no';
+    return suffixes;
+  }
 
-        let html =
-        '<div class="' + cls + '">' +
-        '<div class="headline">' +
-        escapeHtml(headline) +
-        '</div>';
+  function displayLabelForSuffix(suffix) {
+    return suffix.toLowerCase() === 'noupdate' ? suffix.toUpperCase() : suffix;
+  }
 
-        if (detailLines && detailLines.length) {
-          html +=
-          '<div class="dl-details">' +
-          detailLines.map(escapeHtml).join('<br>') +
-          '</div>';
-        }
+  function updateVariantCount() {
+    const n = buildVariant.options.length;
+    variantCountEl.textContent = n + (n === 1 ? ' option' : ' options');
+  }
 
-        html += '</div>';
+  function resetVariantDropdown() {
+    buildVariant.innerHTML = '<option value="default">Default</option>';
+    buildVariant.value = 'default';
+    updateVariantCount();
+  }
 
-        statusEl.innerHTML = html;
-      }
+  function addVariantOptionTop(value, text) {
+    const option = document.createElement('option');
+    option.value = value;
+    option.textContent = text;
+    buildVariant.insertBefore(option, buildVariant.firstChild);
+  }
 
-      function escapeHtml(str) {
-        const div = document.createElement('div');
-        div.textContent = String(str);
-        return div.innerHTML;
-      }
+  function addVariantOptionBottom(value, text) {
+    const option = document.createElement('option');
+    option.value = value;
+    option.textContent = text;
+    buildVariant.appendChild(option);
+  }
 
-      function sleep(ms) {
-        return new Promise(resolve => setTimeout(resolve, ms));
-      }
+  const FALLBACK_PREVIEW_VERSION = 'v0.1.93';
 
+  function updateVariantOptions() {
+    const type = buildType.value;
+    const rawInput = versionInput.value.trim();
 
-      async function dispatchWorkflow(type, version, mode) {
-        await workerRequest('/dispatch', {
-          method: 'POST',
-          body: JSON.stringify({
-            type: type,
-            version: version,
-            mode: mode
-          })
-        });
-      }
+    resetVariantDropdown();
 
+    let normalizedVersion = rawInput ? 'v' + rawInput.replace(/^v/i, '') : '';
+    let release = normalizedVersion
+    ? window.releasesByTag && window.releasesByTag[tagFor(type, normalizedVersion)]
+    : null;
 
-      async function findRunByTime(sinceIso) {
-        const res = await workerRequest(
-          '/runs?since=' + encodeURIComponent(sinceIso)
+    if (!release) {
+      normalizedVersion = FALLBACK_PREVIEW_VERSION;
+      release = window.releasesByTag && window.releasesByTag[tagFor(type, normalizedVersion)];
+    }
+
+    if (!release) return;
+
+    if (hasRawZip(release, type, normalizedVersion)) {
+      addVariantOptionTop('raw', 'Raw');
+    }
+
+    const suffixes = findExeSuffixes(release, type, normalizedVersion);
+    for (const suffix of suffixes) {
+      addVariantOptionBottom(suffix, displayLabelForSuffix(suffix));
+    }
+
+    buildVariant.value = 'default';
+    updateVariantCount();
+  }
+
+  versionInput.addEventListener('input', updateVariantOptions);
+  buildType.addEventListener('change', updateVariantOptions);
+  document.addEventListener('vortex:releases-ready', updateVariantOptions);
+
+  updateVariantOptions();
+
+  function triggerDownload(url, filename) {
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
+
+  goButton.addEventListener('click', async () => {
+    const type = buildType.value;
+    const version = versionInput.value.trim();
+    const variant = buildVariant.value;
+
+    hideReleaseInfo();
+
+    if (!version) {
+      showStatus(
+        'no',
+        'Missing version',
+        ['Enter a version like v0.1.93']
+      );
+      return;
+    }
+
+    const normalizedVersion = 'v' + version.replace(/^v/i, '');
+
+    if (!window.availableVersions[type].includes(normalizedVersion)) {
+      showStatus(
+        'no',
+        'Version not found',
+        [
+          normalizedVersion +
+          ' is not available for ' +
+          (type === 'studio' ? 'Studio' : 'Client') +
+          '.',
+          'Click "Available versions" to see valid versions.'
+        ]
+      );
+      return;
+    }
+
+    goButton.disabled = true;
+
+    try {
+      showStatus('progress', 'Looking up release…', [
+        'type: ' + type,
+        'version: ' + normalizedVersion,
+        'variant: ' + variant
+      ]);
+
+      const cached = window.releasesByTag && window.releasesByTag[tagFor(type, normalizedVersion)];
+      const release = cached || await fetchRelease(type, normalizedVersion);
+      const asset = pickAsset(release, type, normalizedVersion, variant);
+
+      if (!asset) {
+        throw new Error(
+          variant === 'raw'
+          ? 'No matching .raw.zip asset found on this release.'
+          : 'No matching .exe asset found on this release.'
         );
-
-        return await res.json();
       }
 
+      showStatus('progress', 'Fetching file info…', [asset.name]);
 
-      async function getRun(runId) {
-        const res = await workerRequest(
-          '/run?id=' + encodeURIComponent(runId)
-        );
+      populateReleaseInfo(release, asset);
 
-        return await res.json();
-      }
+      showStatus('progress', 'Downloading…', [asset.name]);
 
+      triggerDownload(asset.browser_download_url, asset.name);
 
-      async function pollRun(runId) {
-        while (true) {
-          const run = await getRun(runId);
+      showStatus('ok', 'Done', ['Downloaded as: ' + asset.name]);
 
-          if (run.status === 'completed') {
-            return run;
-          }
-
-          showStatus('progress', 'Building…', [
-            'status: ' + run.status,
-            'run: #' + run.run_number
-          ]);
-
-          await sleep(4000);
-        }
-      }
-
-      async function downloadArtifact(runId, filename) {
-        const url =
-        WORKER_URL +
-        '?runId=' +
-        encodeURIComponent(runId) +
-        '&filename=' +
-        encodeURIComponent(filename);
-
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = filename;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-      }
-
-      goButton.addEventListener('click', async () => {
-        const type = buildType.value;
-        const version = versionInput.value.trim();
-        const mode = wrapCheckbox.checked
-        ? 'noupdate'
-        : 'raw';
-
-        if (!version) {
-          showStatus(
-            'no',
-            'Missing version',
-            ['Enter a version like v0.1.93']
-          );
-          return;
-        }
-
-        const normalizedVersion =
-        'v' + version.replace(/^v/i, '');
-
-        if (
-          !window.availableVersions[type].includes(normalizedVersion)
-        ) {
-          showStatus(
-            'no',
-            'Version not found',
-            [
-              normalizedVersion +
-              ' is not available for ' +
-              (type === 'studio' ? 'Studio' : 'Client') +
-              '.',
-              'Click "Available versions" to see valid versions.'
-            ]
-          );
-          return;
-        }
-
-        goButton.disabled = true;
-
-        const sinceIso =
-        new Date(Date.now() - 5000).toISOString();
-
-        try {
-          showStatus(
-            'progress',
-            'Dispatching build…',
-            [
-              'type: ' + type,
-              'version: ' + version,
-              'mode: ' + mode
-            ]
-          );
-
-          await dispatchWorkflow(
-            type,
-            version,
-            mode
-          );
-
-
-          showStatus(
-            'progress',
-            'Waiting for run to appear…',
-            []
-          );
-
-          let run = null;
-
-          for (let i = 0; i < 15; i++) {
-            run = await findRunByTime(sinceIso);
-
-            if (run) {
-              break;
-            }
-
-            await sleep(2000);
-          }
-
-          if (!run) {
-            throw new Error(
-              'Timed out waiting for the workflow run to start.'
-            );
-          }
-
-
-          const finishedRun = await pollRun(run.id);
-
-
-          if (finishedRun.conclusion !== 'success') {
-            showStatus(
-              'no',
-              'Build failed',
-              [
-                'conclusion: ' +
-                finishedRun.conclusion,
-
-                'See the Actions tab on GitHub for logs.'
-              ]
-            );
-
-            return;
-          }
-
-
-          showStatus(
-            'progress',
-            'Downloading artifact…',
-            []
-          );
-
-
-          const label =
-          type === 'studio'
-          ? 'VortexStudio'
-          : 'Vortex';
-
-          const zipName =
-          label +
-          '.' +
-          version +
-          (mode === 'noupdate'
-          ? '.noupdate'
-          : '') +
-          '.exe';
-
-
-          await downloadArtifact(
-            finishedRun.id,
-            zipName
-          );
-
-
-          showStatus(
-            'ok',
-            'Done',
-            [
-              'Downloaded as: ' + zipName
-            ]
-          );
-
-        } catch (err) {
-          showStatus(
-            'no',
-            'Error',
-            [
-              err instanceof Error
-              ? err.message
-              : String(err)
-            ]
-          );
-        } finally {
-          goButton.disabled = false;
-        }
-      });
+    } catch (err) {
+      showStatus(
+        'no',
+        'Error',
+        [err instanceof Error ? err.message : String(err)]
+      );
+    } finally {
+      goButton.disabled = false;
+    }
+  });
 })();
 
 (function () {
@@ -680,9 +886,14 @@
   const progressEl = document.getElementById('vc-progress');
   const resultEl = document.getElementById('vc-result');
 
-  const MARKER_NO_UPDATE = 'VORTEX_NO_UPDATE';
-  const MARKER_STUDIO_NO_UPDATE = 'VORTEX_STUDIO_NO_UPDATE';
-  const MARKER_NOUPDATE_EXE = '_vortex.exe';
+  const vortex_identification = ['VORTEX_NO_UPDATE', 'vortex.towerstats.com'];
+  const studio_identification = ['VORTEX_STUDIO_NO_UPDATE'];
+  const noupdate_identification = ['_vortex.exe'];
+
+  const BUILD_VERSIONS = {
+    1779954733: 'v0.1.0',
+    1780039700: 'v0.1.5'
+  };
 
   const VERSION_REGEX = /v0\.[0-9]\.[0-9]{1,2}/g;
 
@@ -730,10 +941,10 @@
     reader.onload = (e) => {
       progressEl.textContent = 'Scanning…';
 
-      setTimeout(() => {
+      setTimeout(async () => {
         try {
           const bytes = new Uint8Array(e.target.result);
-          analyze(bytes);
+          await analyze(bytes);
         } catch (err) {
           showResult(
             false,
@@ -746,6 +957,15 @@
     };
 
     reader.readAsArrayBuffer(file);
+  }
+
+  function containsAnyAscii(bytes, list) {
+    for (const text of list) {
+      if (containsAscii(bytes, text)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   function containsAscii(bytes, text) {
@@ -816,27 +1036,73 @@
     return s;
   }
 
-  function analyze(bytes) {
-    const hasNoUpdate =
-    containsAscii(bytes, MARKER_NO_UPDATE);
+  function readPeTimestamp(bytes) {
+    try {
+      if (bytes.length < 0x40 || bytes[0] !== 0x4D || bytes[1] !== 0x5A) {
+        return null;
+      }
 
-    const hasStudioNoUpdate =
-    containsAscii(bytes, MARKER_STUDIO_NO_UPDATE);
+      const dv = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+      const peOffset = dv.getUint32(0x3C, true);
 
-    const hasWrapper =
-    containsAscii(bytes, MARKER_NOUPDATE_EXE);
+      if (peOffset + 24 > bytes.length) {
+        return null;
+      }
 
-    if (!hasNoUpdate && !hasStudioNoUpdate) {
+      if (
+        bytes[peOffset] !== 0x50 ||
+        bytes[peOffset + 1] !== 0x45 ||
+        bytes[peOffset + 2] !== 0x00 ||
+        bytes[peOffset + 3] !== 0x00
+      ) {
+        return null;
+      }
+
+      const coffOffset = peOffset + 4;
+      const timeDateStamp = dv.getUint32(coffOffset + 4, true);
+
+      return timeDateStamp;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function formatUnixTimestamp(ts) {
+    const d = new Date(ts * 1000);
+    return d.toISOString().replace('T', ' ').replace(/\.\d+Z$/, ' UTC');
+  }
+
+  async function sha256Hex(bytes) {
+    const digest = await crypto.subtle.digest('SHA-256', bytes);
+    const arr = Array.from(new Uint8Array(digest));
+    return arr.map((b) => b.toString(16).padStart(2, '0')).join('');
+  }
+
+  async function analyze(bytes) {
+    const hasVortex = containsAnyAscii(bytes, vortex_identification);
+    const hasStudio = containsAnyAscii(bytes, studio_identification);
+    const hasNoupdateWrapper = containsAnyAscii(bytes, noupdate_identification);
+
+    if (!hasVortex && !hasStudio) {
       showResult(false, 'Not a valid Vortex binary');
       return;
     }
 
-    const type =
-    hasStudioNoUpdate
-    ? 'studio'
-    : 'client';
+    const type = hasStudio ? 'studio' : 'client';
+
+    let identificationLabel;
+    if (hasStudio) {
+      identificationLabel = studio_identification.find((m) =>
+      containsAscii(bytes, m)
+      );
+    } else {
+      identificationLabel = vortex_identification.find((m) =>
+      containsAscii(bytes, m)
+      );
+    }
 
     const strings = extractStrings(bytes, 4);
+    const peTimestamp = readPeTimestamp(bytes);
 
     let versionMatch = null;
 
@@ -849,12 +1115,21 @@
       }
     }
 
+    if (!versionMatch && peTimestamp !== null) {
+      versionMatch = BUILD_VERSIONS[peTimestamp] || null;
+    }
+
+    const hash = await sha256Hex(bytes);
+
     showResult(
       true,
       null,
       type,
       versionMatch,
-      hasWrapper
+      hasNoupdateWrapper,
+      peTimestamp,
+      identificationLabel,
+      hash
     );
   }
 
@@ -863,7 +1138,10 @@
     message,
     type,
     version,
-    hasWrapper
+    hasWrapper,
+    peTimestamp,
+    identificationLabel,
+    hash
   ) {
     if (!found) {
       resultEl.innerHTML =
@@ -912,13 +1190,9 @@
     ) +
 
     '<div class="row">' +
-    '<span class="k">update guard</span>' +
+    '<span class="k">marker</span>' +
     '<span class="v">' +
-    (
-      type === 'studio'
-      ? 'VORTEX_STUDIO_NO_UPDATE'
-      : 'VORTEX_NO_UPDATE'
-    ) +
+    escapeHtml(identificationLabel) +
     '</span>' +
     '</div>' +
 
@@ -928,6 +1202,24 @@
     (hasWrapper ? 'bool-true' : 'bool-false') +
     '">' +
     (hasWrapper ? 'TRUE' : 'FALSE') +
+    '</span>' +
+    '</div>' +
+
+    (
+      peTimestamp
+      ? '<div class="row">' +
+      '<span class="k">built at</span>' +
+      '<span class="v">' +
+      escapeHtml(formatUnixTimestamp(peTimestamp)) +
+      '</span>' +
+      '</div>'
+      : ''
+    ) +
+
+    '<div class="row">' +
+    '<span class="k">sha256</span>' +
+    '<span class="v" style="word-break: break-all;">' +
+    escapeHtml(hash) +
     '</span>' +
     '</div>' +
 
@@ -1000,39 +1292,39 @@
 
   const MATERIAL_BY_ID = {
     0: 'Smooth',
- 1: 'Smooth',
- 2: 'Plastic',
- 3: 'Wood',
- 4: 'Metal',
- 5: 'Grass',
- 6: 'Ice',
- 7: 'Paint'
+    1: 'Smooth',
+    2: 'Plastic',
+    3: 'Wood',
+    4: 'Metal',
+    5: 'Grass',
+    6: 'Ice',
+    7: 'Paint'
   };
   const MATERIAL_ID_BY_NAME = {
     Smooth: 0,
- Plastic: 2,
- Wood: 3,
- Metal: 4,
- Grass: 5,
- Ice: 6,
- Paint: 7
+    Plastic: 2,
+    Wood: 3,
+    Metal: 4,
+    Grass: 5,
+    Ice: 6,
+    Paint: 7
   };
 
   const FACE_BY_ID = {
     0: 'Right',
- 1: 'Top',
- 2: 'Back',
- 3: 'Left',
- 4: 'Bottom',
- 5: 'Front'
+    1: 'Top',
+    2: 'Back',
+    3: 'Left',
+    4: 'Bottom',
+    5: 'Front'
   };
   const FACE_ID_BY_NAME = {
     Right: 0,
- Top: 1,
- Back: 2,
- Left: 3,
- Bottom: 4,
- Front: 5
+    Top: 1,
+    Back: 2,
+    Left: 3,
+    Bottom: 4,
+    Front: 5
   };
 
   const MAX_OUTPUT_SIZE = 256 * 1024 * 1024;
@@ -1431,7 +1723,7 @@
       format: 'nvtjson',
         format_version: 1,
           compression,
- version: reader.u8(),
+          version: reader.u8(),
  project_id: reader.string()
     };
     const count = reader.u64();
@@ -1607,7 +1899,7 @@
       payload = codec.decompress(bytes.slice(5));
       compression = {
         kind: 'nvtzstd',
- wrapper_version: bytes[4]
+        wrapper_version: bytes[4]
       };
     }
     return decodePayload(payload, compression);
@@ -1918,8 +2210,8 @@
 
   window.vrtxCodec = {
     decode: decodeVrtxFile,
- encode: encodeVrtxFile,
- clone: cloneDoc
+    encode: encodeVrtxFile,
+    clone: cloneDoc
   };
 })();
 
