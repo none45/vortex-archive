@@ -892,6 +892,7 @@
 
   const BUILD_VERSIONS = {
     1779954733: 'v0.1.0',
+    1779958737: 'v0.1.1',
     1780039700: 'v0.1.5'
   };
 
@@ -1050,9 +1051,9 @@
       }
 
       if (
-        bytes[peOffset] !== 0x50 ||
-        bytes[peOffset + 1] !== 0x50 ||
-        bytes[peOffset + 2] !== 0x45 ||
+        bytes[peOffset]     !== 0x50 ||
+        bytes[peOffset + 1] !== 0x45 ||
+        bytes[peOffset + 2] !== 0x00 ||
         bytes[peOffset + 3] !== 0x00
       ) {
         return null;
@@ -1150,6 +1151,11 @@
     return set;
   }
 
+  const HARDCODED_HASHES = new Set([
+    'ff11cd050159cac7eeb873af9d2a060c0a651e811fad7228a3b951a8b2b2eff7', // Vortex.v0.1.0 / Vortex.exe
+    '9e5f2825b06faaf4114be72ccc36f842d0772cf5585f6afbb4ca49e6ecaef29e'  // Vortex.v0.1.1 / Vortex.exe
+  ]);
+
   function checkKnownHash(hash, type, version, file) {
     if (!window.releasesByTag || !Object.keys(window.releasesByTag).length) {
       document.addEventListener(
@@ -1159,8 +1165,7 @@
       );
       return;
     }
-
-    const known = knownHashes();
+    const known = new Set([...knownHashes(), ...HARDCODED_HASHES]);
     if (known.has(hash.toLowerCase())) return;
 
     showUnknownHashPrompt(hash, type, version, file);
