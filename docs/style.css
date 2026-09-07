@@ -736,7 +736,7 @@ button.action:disabled {
   border-radius: 6px;
   background: var(--panel);
   border: 1px solid var(--border-soft);
-  padding: 12px 20px 12px 25px;
+  padding: 14px 20px 12px 25px;
   overflow: hidden;
   animation: viewIn 0.2s ease-out;
 }
@@ -752,8 +752,8 @@ button.action:disabled {
 .dl-result-box.ok::before { background: var(--good); }
 .dl-result-box.no::before { background: var(--bad); }
 .dl-result-box .headline {
-  font-family: 'JetBrains Mono', monospace;
-  font-weight: 600;
+  font-family: 'Manrope', sans-serif;
+  font-weight: 700;
   font-size: 1.05rem;
 }
 .dl-result-box.progress .headline { color: var(--studio); }
@@ -785,6 +785,103 @@ button.action:disabled {
   font-size: 0.82rem;
   color: var(--muted);
   line-height: 1.7;
+}
+
+/* Unknown-hash "contribute to archive" prompt */
+#vc-unknown-prompt .release-info-card {
+position: relative;
+padding: 16px 44px 18px 20px;
+}
+.vc-prompt-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.vc-prompt-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 5px;
+  transition: color 0.15s, background 0.15s;
+}
+.vc-prompt-close:hover {
+  color: var(--text);
+  background: var(--border-soft);
+}
+.vc-prompt-title {
+  font-family: 'Manrope', sans-serif;
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--text);
+}
+.vc-prompt-meta {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.8rem;
+  color: var(--muted);
+  margin-top: 3px;
+}
+.vc-prompt-ask {
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  font-size: 0.9rem;
+  color: var(--text);
+}
+.vc-prompt-actions {
+  display: flex;
+  gap: 10px;
+  align-items: stretch;
+}
+.vc-prompt-actions button.action {
+  width: auto;
+  flex: 1 1 auto;
+  margin-top: 0;
+  padding: 10px 18px;
+  font-size: 0.88rem;
+}
+.vc-prompt-actions button.vc-btn-no {
+  flex: 0 0 auto;
+  padding: 0 20px;
+  font-size: 0.88rem;
+  font-weight: 500;
+  font-family: 'Inter', sans-serif;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bad-dim);
+  color: var(--bad);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+}
+.vc-prompt-actions button.vc-btn-no:hover {
+  border-color: var(--bad);
+  background: var(--bad);
+  color: #16131f;
+}
+.vc-prompt-status {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+.vc-prompt-status.vc-prompt-status-done {
+  color: #ffffff;
+}
+
+@media (max-width: 480px) {
+  .vc-prompt-actions { flex-wrap: wrap; }
+  .vc-prompt-actions button.action,
+  .vc-prompt-actions button.help-btn { flex: 1 1 100%; }
 }
 
 .drop {
@@ -844,7 +941,7 @@ button.action:disabled {
   border-radius: 6px;
   background: var(--panel);
   border: 1px solid var(--border-soft);
-  padding: 12px 20px 12px 25px;
+  padding: 14px 20px 12px 25px;
   overflow: hidden;
   animation: viewIn 0.2s ease-out;
 }
@@ -859,9 +956,9 @@ button.action:disabled {
 .vc-result-box.studio::before { background: var(--studio); }
 .vc-result-box.no::before { background: var(--bad); }
 .vc-result-box .headline {
-  font-family: 'JetBrains Mono', monospace;
-  font-weight: 600;
-  font-size: 1.05rem;
+  font-family: 'Manrope', sans-serif;
+  font-weight: 700;
+  font-size: 1.2rem;
 }
 .vc-result-box.ok .headline { color: var(--accent); }
 .vc-result-box.studio .headline { color: var(--studio); }

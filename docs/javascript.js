@@ -824,7 +824,7 @@
     if (!window.availableVersions[type].includes(normalizedVersion)) {
       showStatus(
         'no',
-        'Version not found',
+        'ERR',
         [
           normalizedVersion +
           ' is not available for ' +
@@ -944,7 +944,7 @@
       setTimeout(async () => {
         try {
           const bytes = new Uint8Array(e.target.result);
-          await analyze(bytes);
+          await analyze(bytes, file);
         } catch (err) {
           showResult(
             false,
@@ -1051,8 +1051,8 @@
 
       if (
         bytes[peOffset] !== 0x50 ||
-        bytes[peOffset + 1] !== 0x45 ||
-        bytes[peOffset + 2] !== 0x00 ||
+        bytes[peOffset + 1] !== 0x50 ||
+        bytes[peOffset + 2] !== 0x45 ||
         bytes[peOffset + 3] !== 0x00
       ) {
         return null;
@@ -1078,7 +1078,7 @@
     return arr.map((b) => b.toString(16).padStart(2, '0')).join('');
   }
 
-  async function analyze(bytes) {
+  async function analyze(bytes, file) {
     const hasVortex = containsAnyAscii(bytes, vortex_identification);
     const hasStudio = containsAnyAscii(bytes, studio_identification);
     const hasNoupdateWrapper = containsAnyAscii(bytes, noupdate_identification);
@@ -1131,6 +1131,266 @@
       identificationLabel,
       hash
     );
+
+    checkKnownHash(hash, type, versionMatch, file);
+  }
+
+  function knownHashes() {
+    const set = new Set();
+    const byTag = window.releasesByTag || {};
+    for (const tag in byTag) {
+      const release = byTag[tag];
+      const assets = (release && release.assets) || [];
+      for (const asset of assets) {
+        if (asset.digest && asset.digest.startsWith('sha256:')) {
+          set.add(asset.digest.slice(7).toLowerCase());
+        }
+      }
+    }
+    return set;
+  }
+
+  function checkKnownHash(hash, type, version, file) {
+    if (!window.releasesByTag || !Object.keys(window.releasesByTag).length) {
+      document.addEventListener(
+        'vortex:releases-ready',
+        () => checkKnownHash(hash, type, version, file),
+                                { once: true }
+      );
+      return;
+    }
+
+    const known = knownHashes();
+    if (known.has(hash.toLowerCase())) return;
+
+    showUnknownHashPrompt(hash, type, version, file);
+  }
+
+  function showUnknownHashPrompt(hash, type, version, file) {
+    const existing = document.getElementById('vc-unknown-prompt');
+    if (existing) existing.remove();
+
+    const box = document.createElement('div');
+    box.id = 'vc-unknown-prompt';
+    box.style.marginTop = '16px';
+
+    box.innerHTML =
+    '<div class="release-info-card vc-prompt-card">' +
+    '<button type="button" class="vc-prompt-close" id="vcPromptClose" aria-label="Dismiss">' +
+    '<svg viewBox="0 0 16 16" width="14" height="14" fill="none" xmlns="http://www.w3.org/2000/svg">' +
+    '<path d="M3 3L13 13M13 3L3 13" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>' +
+    '</svg>' +
+    '</button>' +
+    '<div>' +
+    '<div class="vc-prompt-title">This build isn\'t in the archive yet!</div>' +
+    '<div class="vc-prompt-meta" id="vcPromptMeta"></div>' +
+    '</div>' +
+    '<div class="vc-prompt-ask" id="vcPromptAsk">Want to send it over to help improve the archive?</div>' +
+    '<div class="vc-prompt-actions" id="vcPromptActions">' +
+    '<button type="button" class="action" id="vcSendYes">Yes, send it</button>' +
+    '<button type="button" class="vc-btn-no" id="vcSendNo">No thanks</button>' +
+    '</div>' +
+    '<div class="vc-prompt-status" id="vcSendStatus" style="display:none;"></div>' +
+    '</div>';
+
+    const label = type === 'studio' ? 'Vortex Studio' : 'Vortex';
+    const meta = label + ' ' + (version || 'unknown version') + ' (' + file.name + ' - ' + formatBytes(file.size) + ')';
+    box.querySelector('#vcPromptMeta').textContent = meta;
+
+    resultEl.appendChild(box);
+
+    box.querySelector('#vcPromptClose').addEventListener('click', () => box.remove());
+    box.querySelector('#vcSendNo').addEventListener('click', () => box.remove());
+    box.querySelector('#vcSendYes').addEventListener('click', () => uploadToArchive(hash, type, version, file, box));
+  }
+
+  const UPLOAD_ENDPOINT = 'https://vortex-upload.none45556.workers.dev/upload';
+
+  let zstdCodecPromise = null;
+
+  function loadZstdCodec() {
+    if (!zstdCodecPromise) {
+      zstdCodecPromise = import('/vortex-archive/zstd-bundle.js')
+      .then(async (mod) => {
+        await mod.init();
+        return mod;
+      })
+      .catch((err) => {
+        zstdCodecPromise = null;
+        throw err;
+      });
+    }
+    return zstdCodecPromise;
+  }
+
+  const CRC_TABLE = (() => {
+    const t = new Uint32Array(256);
+    for (let n = 0; n < 256; n++) {
+      let c = n;
+      for (let k = 0; k < 8; k++) {
+        c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1;
+      }
+      t[n] = c >>> 0;
+    }
+    return t;
+  })();
+
+  function crc32(bytes) {
+    let c = 0xFFFFFFFF;
+    for (let i = 0; i < bytes.length; i++) {
+      c = CRC_TABLE[(c ^ bytes[i]) & 0xFF] ^ (c >>> 8);
+    }
+    return (c ^ 0xFFFFFFFF) >>> 0;
+  }
+
+  function makeStoredZip(entryName, bytes) {
+    const enc = new TextEncoder();
+    const nameBytes = enc.encode(entryName);
+    const crc = crc32(bytes);
+    const size = bytes.length;
+
+    const local = new Uint8Array(30 + nameBytes.length);
+    const lv = new DataView(local.buffer);
+    lv.setUint32(0, 0x04034b50, true);
+    lv.setUint16(4, 20, true);
+    lv.setUint16(6, 0, true);
+    lv.setUint16(8, 0, true);
+    lv.setUint16(10, 0, true);
+    lv.setUint16(12, 0x21, true);
+    lv.setUint32(14, crc, true);
+    lv.setUint32(18, size, true);
+    lv.setUint32(22, size, true);
+    lv.setUint16(26, nameBytes.length, true);
+    lv.setUint16(28, 0, true);
+    local.set(nameBytes, 30);
+
+    const central = new Uint8Array(46 + nameBytes.length);
+    const cv = new DataView(central.buffer);
+    cv.setUint32(0, 0x02014b50, true);
+    cv.setUint16(4, 20, true);
+    cv.setUint16(6, 20, true);
+    cv.setUint16(8, 0, true);
+    cv.setUint16(10, 0, true);
+    cv.setUint16(12, 0, true);
+    cv.setUint16(14, 0x21, true);
+    cv.setUint32(16, crc, true);
+    cv.setUint32(20, size, true);
+    cv.setUint32(24, size, true);
+    cv.setUint16(28, nameBytes.length, true);
+    cv.setUint32(38, 0, true);
+    cv.setUint32(42, 0, true);
+    central.set(nameBytes, 46);
+
+    const eocd = new Uint8Array(22);
+    const ev = new DataView(eocd.buffer);
+    ev.setUint32(0, 0x06054b50, true);
+    ev.setUint16(8, 1, true);
+    ev.setUint16(10, 1, true);
+    ev.setUint32(12, central.length, true);
+    ev.setUint32(16, local.length + size, true);
+
+    const out = new Uint8Array(local.length + size + central.length + eocd.length);
+    let off = 0;
+    out.set(local, off); off += local.length;
+    out.set(bytes, off); off += size;
+    out.set(central, off); off += central.length;
+    out.set(eocd, off);
+    return out;
+  }
+
+  function pickZstdLevel(size) {
+    if (size <= 10 * 1024 * 1024)  return 15;
+    if (size <= 50 * 1024 * 1024)  return 9;
+    if (size <= 120 * 1024 * 1024) return 5;
+    return 3;
+  }
+
+  function uploadWithProgress(form, onPercent) {
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', UPLOAD_ENDPOINT);
+      xhr.upload.addEventListener('progress', (e) => {
+        if (e.lengthComputable) {
+          onPercent(Math.round((e.loaded / e.total) * 100));
+        }
+      });
+      xhr.addEventListener('load', () => resolve({ status: xhr.status, text: xhr.responseText }));
+      xhr.addEventListener('error', () => reject(new Error('Network error during upload')));
+      xhr.addEventListener('timeout', () => reject(new Error('Upload timed out')));
+      xhr.send(form);
+    });
+  }
+
+  async function uploadToArchive(hash, type, version, file, box) {
+    const yesBtn   = box.querySelector('#vcSendYes');
+    const noBtn    = box.querySelector('#vcSendNo');
+    const actionsEl = box.querySelector('#vcPromptActions');
+    const statusEl = box.querySelector('#vcSendStatus');
+
+    yesBtn.disabled    = true;
+    statusEl.textContent = '';
+    statusEl.style.display = '';
+
+    try {
+      const bytes = new Uint8Array(await file.arrayBuffer());
+
+      let payload = bytes;
+      let uploadName = file.name;
+
+      payload = makeStoredZip(uploadName, payload);
+      uploadName = uploadName + '.zip';
+
+      try {
+        const level = pickZstdLevel(file.size);
+        statusEl.textContent = 'Compressing with zstd (level ' + level + ')…';
+        statusEl.style.display = '';
+
+        await new Promise((r) => setTimeout(r, 30));
+
+        const codec = await loadZstdCodec();
+        payload = codec.compress(bytes, level);
+        uploadName = file.name + '.zst';
+      } catch (err) {
+        console.warn('zstd unavailable, uploading raw:', err);
+        payload = bytes;
+        uploadName = file.name;
+      }
+
+      const mb = (payload.byteLength / (1024 * 1024)).toFixed(1);
+      statusEl.textContent = 'Uploading ' + mb + ' MB…';
+      yesBtn.textContent = 'Uploading…';
+
+      const form = new FormData();
+      form.append('file',      new Blob([payload], { type: 'application/octet-stream' }), uploadName);
+      form.append('hash',      hash);
+      form.append('type',      type     || 'unknown');
+      form.append('version',   version  || 'unknown');
+      form.append('filename',  file.name);
+      form.append('filesize',  String(payload.byteLength));
+      form.append('orig_size', String(file.size));
+
+      const res = await uploadWithProgress(form, (pct) => {
+        statusEl.textContent = 'Uploading ' + mb + ' MB… ' + pct + '%';
+      });
+
+      let data;
+      try { data = JSON.parse(res.text); } catch { data = {}; }
+
+      if (res.status < 200 || res.status >= 300 || !data.ok) {
+        throw new Error(data.error || 'Upload failed (HTTP ' + res.status + ')');
+      }
+
+      box.querySelector('#vcPromptAsk').remove();
+      actionsEl.remove();
+      statusEl.textContent = 'Sent - thanks for contributing!!';
+      statusEl.classList.add('vc-prompt-status-done');
+
+    } catch (err) {
+      yesBtn.disabled    = false;
+      yesBtn.textContent = 'Retry';
+      statusEl.textContent = err.message;
+      statusEl.style.display = '';
+    }
   }
 
   function showResult(
@@ -1161,8 +1421,8 @@
 
     const headline =
     version
-    ? label + ' — ' + version
-    : label + ' — version not found';
+    ? label + ' - ' + version
+    : label + ' - ERR';
 
     resultEl.innerHTML =
     '<div class="vc-result-box ok">' +
