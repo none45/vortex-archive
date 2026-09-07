@@ -167,7 +167,6 @@ try {
     $iconFile = Join-Path $tempDir "vortex.ico"
     $resourceRc = Join-Path $tempDir "wrapper.rc"
     $resourceObj = Join-Path $tempDir "wrapper_res.o"
-    $buildError = Join-Path $tempDir "build_error.txt"
 
 @"
 #include <windows.h>
@@ -335,6 +334,8 @@ int main(void)
 }
 "@ | Set-Content -Path $wrapperC -Encoding ASCII
 
+    $haveIcon = $true
+
     $wrestoolOutput = & $wrestool.Source `
         -x `
         -t14 `
@@ -343,33 +344,36 @@ int main(void)
         2>&1
 
     if ($LASTEXITCODE -ne 0) {
-        Write-Error ($wrestoolOutput | Out-String)
-        exit 1
-    }
+        Write-Warning "Could not extract icon: $($wrestoolOutput | Out-String)"
+        Write-Warning "Building without icon."
+        $haveIcon = $false
+    } else {
 
-    $extractedIcon = Get-ChildItem $tempDir -Filter "*.ico" |
-        Select-Object -First 1
+        $extractedIcon = Get-ChildItem $tempDir -Filter "*.ico" |
+            Select-Object -First 1
 
-    if (-not $extractedIcon) {
-        Write-Error "Error: Failed to extract icon from Vortex executable."
-        exit 1
-    }
+        if (-not $extractedIcon) {
+            Write-Warning "Could not extract icon, building without one."
+            $haveIcon = $false
+        } else {
 
-    Move-Item $extractedIcon.FullName $iconFile -Force
+            Move-Item $extractedIcon.FullName $iconFile -Force
 
 @"
 1 ICON "$iconFile"
 "@ | Set-Content -Path $resourceRc -Encoding ASCII
 
-    $windresOutput = & $windres.Source `
-        $resourceRc `
-        -O coff `
-        -o $resourceObj `
-        2>&1
+            $windresOutput = & $windres.Source `
+                $resourceRc `
+                -O coff `
+                -o $resourceObj `
+                2>&1
 
-    if ($LASTEXITCODE -ne 0) {
-        Write-Error ($windresOutput | Out-String)
-        exit 1
+            if ($LASTEXITCODE -ne 0) {
+                Write-Warning "windres failed, building without icon."
+                $haveIcon = $false
+            }
+        }
     }
 
     $objcopyOutput = & $objcopy.Source `
@@ -392,13 +396,13 @@ int main(void)
         Remove-Item $outputPath -Force
     }
 
-    $gccOutput = & $gcc.Source `
-        -mwindows `
-        $wrapperC `
-        $vortexObj `
-        $resourceObj `
-        -o $outputPath `
-        2>&1
+    $gccArgs = @('-mwindows', $wrapperC, $vortexObj)
+
+    if ($haveIcon) {
+        $gccArgs += $resourceObj
+    }
+
+    $gccOutput = & $gcc.Source @gccArgs 2>&1
 
     if ($LASTEXITCODE -ne 0) {
         Write-Error ($gccOutput | Out-String)

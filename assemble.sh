@@ -264,28 +264,33 @@ EOF
 
 cd "$TEMP_DIR"
 
+HAVE_ICON=1
+
 wrestool -x -t14 -o "$TEMP_DIR" "_vortex.exe" 2>/dev/null
 
 EXTRACTED_ICON=$(find "$TEMP_DIR" -maxdepth 1 -type f -name "*.ico" | head -n 1)
 
 if [ -z "$EXTRACTED_ICON" ]; then
-    echo "Error: Failed to extract icon from Vortex executable."
-    exit 1
+    echo "Warning: Could not extract icon, building without one."
+    HAVE_ICON=0
 fi
 
-mv "$EXTRACTED_ICON" "$ICON_FILE"
+if [ "$HAVE_ICON" -eq 1 ]; then
+    mv "$EXTRACTED_ICON" "$ICON_FILE"
 
-cat > "$RESOURCE_RC" <<EOF
+    cat > "$RESOURCE_RC" <<EOF
 1 ICON "$ICON_FILE"
 EOF
 
-if ! x86_64-w64-mingw32-windres \
-    "$RESOURCE_RC" \
-    -O coff \
-    -o "$RESOURCE_O" 2>"$TEMP_DIR/build_error"; then
+    if ! x86_64-w64-mingw32-windres \
+        "$RESOURCE_RC" \
+        -O coff \
+        -o "$RESOURCE_O" 2>"$TEMP_DIR/build_error"; then
 
-    cat "$TEMP_DIR/build_error"
-    exit 1
+        echo "Warning: windres failed, building without icon."
+        cat "$TEMP_DIR/build_error"
+        HAVE_ICON=0
+    fi
 fi
 
 if ! x86_64-w64-mingw32-objcopy \
@@ -303,11 +308,14 @@ cd - >/dev/null
 
 OUTPUT_NAME="${FILE_NAME%.exe}.noupdate.exe"
 
+GCC_ARGS=(-mwindows "$WRAPPER_C" "$VORTEX_O")
+
+if [ "$HAVE_ICON" -eq 1 ]; then
+    GCC_ARGS+=("$RESOURCE_O")
+fi
+
 if ! x86_64-w64-mingw32-gcc \
-    -mwindows \
-    "$WRAPPER_C" \
-    "$VORTEX_O" \
-    "$RESOURCE_O" \
+    "${GCC_ARGS[@]}" \
     -o "./${OUTPUT_NAME}" 2>"$TEMP_DIR/build_error"; then
 
     cat "$TEMP_DIR/build_error"
