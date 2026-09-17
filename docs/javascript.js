@@ -1153,7 +1153,8 @@
 
   const HARDCODED_HASHES = new Set([
     'ff11cd050159cac7eeb873af9d2a060c0a651e811fad7228a3b951a8b2b2eff7', // Vortex.v0.1.0 / Vortex.exe
-    '9e5f2825b06faaf4114be72ccc36f842d0772cf5585f6afbb4ca49e6ecaef29e'  // Vortex.v0.1.1 / Vortex.exe
+    '9e5f2825b06faaf4114be72ccc36f842d0772cf5585f6afbb4ca49e6ecaef29e', // Vortex.v0.1.1 / Vortex.exe
+    '72a17945fb742b9e11d33c5b9cb67b75eb70b5b8006e8f8e02830d94e1cc52b6'  // VortexStudio.v0.1.0 / noicon
   ]);
 
   function checkKnownHash(hash, type, version, file) {
